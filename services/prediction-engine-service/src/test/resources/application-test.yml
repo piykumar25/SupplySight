@@ -1,0 +1,29 @@
+spring:
+  application:
+    name: prediction-engine-service-test
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    show-sql: false
+  flyway:
+    enabled: true
+    baseline-on-migrate: true
+    locations: classpath:db/migration
+    schemas: prediction
+
+jwt:
+  secret: test-secret-key-that-is-at-least-256-bits-long-for-hs256-algorithm
+
+prediction:
+  default-average-speed: 50.0
+  max-reasonable-speed: 120.0
+  min-speed-threshold: 5.0
+  dwell-time-warning-hours: 4
+  dwell-time-critical-hours: 8
+  delay-probability-warning: 0.3
+  delay-probability-high: 0.6
+
+logging:
+  level:
+    root: WARN
+    com.supplysight: INFO

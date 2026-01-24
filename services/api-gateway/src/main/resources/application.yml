@@ -1,0 +1,206 @@
+server:
+  port: 8080
+
+spring:
+  application:
+    name: api-gateway
+  main:
+    web-application-type: reactive
+  
+  data:
+    redis:
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:6379}
+  
+  cloud:
+    gateway:
+      default-filters:
+        - DedupeResponseHeader=Access-Control-Allow-Origin Access-Control-Allow-Credentials, RETAIN_FIRST
+      globalcors:
+        cors-configurations:
+          '[/**]':
+            allowedOrigins: "*"
+            allowedMethods:
+              - GET
+              - POST
+              - PUT
+              - DELETE
+              - PATCH
+              - OPTIONS
+            allowedHeaders: "*"
+            exposedHeaders:
+              - X-Correlation-ID
+            maxAge: 3600
+      
+      routes:
+        # Identity Service Routes
+        - id: identity-service-auth
+          uri: ${IDENTITY_SERVICE_URL:http://localhost:8081}
+          predicates:
+            - Path=/api/v1/login,/api/v1/register,/api/v1/refresh,/api/v1/logout
+          filters:
+            - name: RequestRateLimiter
+              args:
+                redis-rate-limiter.replenishRate: 10
+                redis-rate-limiter.burstCapacity: 20
+                key-resolver: "#{@ipKeyResolver}"
+        
+        - id: identity-service
+          uri: ${IDENTITY_SERVICE_URL:http://localhost:8081}
+          predicates:
+            - Path=/api/v1/users/**,/api/v1/tenants/**,/api/v1/seed/**
+          filters:
+            - name: RequestRateLimiter
+              args:
+                redis-rate-limiter.replenishRate: 100
+                redis-rate-limiter.burstCapacity: 200
+                key-resolver: "#{@tenantKeyResolver}"
+        
+        # Event Ingestion Service Routes
+        - id: event-ingestion-service
+          uri: ${EVENT_INGESTION_SERVICE_URL:http://localhost:8082}
+          predicates:
+            - Path=/api/v1/events/**
+          filters:
+            - name: RequestRateLimiter
+              args:
+                redis-rate-limiter.replenishRate: 1000
+                redis-rate-limiter.burstCapacity: 2000
+                key-resolver: "#{@tenantKeyResolver}"
+        
+        # Tracking Service Routes
+        - id: tracking-service
+          uri: ${TRACKING_SERVICE_URL:http://localhost:8083}
+          predicates:
+            - Path=/api/v1/tracking/**
+          filters:
+            - name: RequestRateLimiter
+              args:
+                redis-rate-limiter.replenishRate: 500
+                redis-rate-limiter.burstCapacity: 1000
+                key-resolver: "#{@tenantKeyResolver}"
+        
+        # Visibility Projection Service Routes
+        - id: visibility-service
+          uri: ${VISIBILITY_SERVICE_URL:http://localhost:8084}
+          predicates:
+            - Path=/api/v1/shipments/**
+          filters:
+            - name: RequestRateLimiter
+              args:
+                redis-rate-limiter.replenishRate: 500
+                redis-rate-limiter.burstCapacity: 1000
+                key-resolver: "#{@tenantKeyResolver}"
+        
+        # Prediction Engine Service Routes
+        - id: prediction-service
+          uri: ${PREDICTION_SERVICE_URL:http://localhost:8085}
+          predicates:
+            - Path=/api/v1/predictions/**,/api/v1/alerts/**
+          filters:
+            - name: RequestRateLimiter
+              args:
+                redis-rate-limiter.replenishRate: 200
+                redis-rate-limiter.burstCapacity: 400
+                key-resolver: "#{@tenantKeyResolver}"
+        
+        # Audit Service Routes
+        - id: audit-service
+          uri: ${AUDIT_SERVICE_URL:http://localhost:8086}
+          predicates:
+            - Path=/api/v1/audit/**
+          filters:
+            - name: RequestRateLimiter
+              args:
+                redis-rate-limiter.replenishRate: 100
+                redis-rate-limiter.burstCapacity: 200
+                key-resolver: "#{@tenantKeyResolver}"
+        
+        # Health check passthrough for all services
+        - id: identity-health
+          uri: ${IDENTITY_SERVICE_URL:http://localhost:8081}
+          predicates:
+            - Path=/identity/actuator/**
+          filters:
+            - RewritePath=/identity/actuator/(?<segment>.*), /actuator/${segment}
+        
+        - id: ingestion-health
+          uri: ${EVENT_INGESTION_SERVICE_URL:http://localhost:8082}
+          predicates:
+            - Path=/ingestion/actuator/**
+          filters:
+            - RewritePath=/ingestion/actuator/(?<segment>.*), /actuator/${segment}
+        
+        - id: visibility-health
+          uri: ${VISIBILITY_SERVICE_URL:http://localhost:8084}
+          predicates:
+            - Path=/visibility/actuator/**
+          filters:
+            - RewritePath=/visibility/actuator/(?<segment>.*), /actuator/${segment}
+        
+        - id: prediction-health
+          uri: ${PREDICTION_SERVICE_URL:http://localhost:8085}
+          predicates:
+            - Path=/prediction/actuator/**
+          filters:
+            - RewritePath=/prediction/actuator/(?<segment>.*), /actuator/${segment}
+        
+        - id: audit-health
+          uri: ${AUDIT_SERVICE_URL:http://localhost:8086}
+          predicates:
+            - Path=/audit/actuator/**
+          filters:
+            - RewritePath=/audit/actuator/(?<segment>.*), /actuator/${segment}
+
+# JWT Configuration
+jwt:
+  secret: ${JWT_SECRET:defaultSecretKeyThatShouldBeReplacedInProduction123456}
+  issuer: supplysight
+
+# Kafka for audit logging
+kafka:
+  bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:localhost:9092}
+
+# Gateway-specific settings
+gateway:
+  auth:
+    # Paths that don't require authentication
+    public-paths:
+      - /api/v1/login
+      - /api/v1/register
+      - /api/v1/refresh
+      - /api/v1/seed/**
+      - /actuator/**
+      - /*/actuator/**
+  
+  audit:
+    enabled: true
+    topic: tracking.audit
+
+# Actuator endpoints
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,prometheus,gateway
+  endpoint:
+    health:
+      show-details: when_authorized
+      probes:
+        enabled: true
+    gateway:
+      enabled: true
+  health:
+    redis:
+      enabled: true
+  metrics:
+    tags:
+      application: ${spring.application.name}
+
+logging:
+  level:
+    com.supplysight: DEBUG
+    org.springframework.cloud.gateway: INFO
+    reactor.netty: INFO
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level [%X{correlationId}] %logger{36} - %msg%n"

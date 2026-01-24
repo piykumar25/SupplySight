@@ -1,0 +1,154 @@
+version: '3.8'
+
+services:
+  # PostgreSQL Database
+  postgres:
+    image: postgres:16-alpine
+    container_name: supplysight-postgres
+    environment:
+      POSTGRES_USER: supplysight
+      POSTGRES_PASSWORD: supplysight_secret
+      POSTGRES_DB: supplysight
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./postgres/init:/docker-entrypoint-initdb.d
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U supplysight -d supplysight"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - supplysight-network
+
+  # Redis Cache
+  redis:
+    image: redis:7-alpine
+    container_name: supplysight-redis
+    ports:
+      - "6379:6379"
+    command: redis-server --appendonly yes --maxmemory 256mb --maxmemory-policy allkeys-lru
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - supplysight-network
+
+  # Zookeeper (required for Kafka)
+  zookeeper:
+    image: confluentinc/cp-zookeeper:7.5.0
+    container_name: supplysight-zookeeper
+    environment:
+      ZOOKEEPER_CLIENT_PORT: 2181
+      ZOOKEEPER_TICK_TIME: 2000
+    ports:
+      - "2181:2181"
+    healthcheck:
+      test: ["CMD", "nc", "-z", "localhost", "2181"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - supplysight-network
+
+  # Kafka Message Broker
+  kafka:
+    image: confluentinc/cp-kafka:7.5.0
+    container_name: supplysight-kafka
+    depends_on:
+      zookeeper:
+        condition: service_healthy
+    ports:
+      - "9092:9092"
+      - "9093:9093"
+    environment:
+      KAFKA_BROKER_ID: 1
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+      KAFKA_LISTENERS: INTERNAL://0.0.0.0:9093,EXTERNAL://0.0.0.0:9092
+      KAFKA_ADVERTISED_LISTENERS: INTERNAL://kafka:9093,EXTERNAL://localhost:9092
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: INTERNAL:PLAINTEXT,EXTERNAL:PLAINTEXT
+      KAFKA_INTER_BROKER_LISTENER_NAME: INTERNAL
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
+      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
+      KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS: 0
+      KAFKA_AUTO_CREATE_TOPICS_ENABLE: 'true'
+      KAFKA_LOG_RETENTION_HOURS: 168
+      KAFKA_LOG_RETENTION_BYTES: 1073741824
+    healthcheck:
+      test: ["CMD", "kafka-topics", "--bootstrap-server", "localhost:9092", "--list"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+    networks:
+      - supplysight-network
+
+  # Kafka Topic Initialization
+  kafka-init:
+    image: confluentinc/cp-kafka:7.5.0
+    container_name: supplysight-kafka-init
+    depends_on:
+      kafka:
+        condition: service_healthy
+    entrypoint: ['/bin/sh', '-c']
+    command: |
+      "
+      echo 'Waiting for Kafka to be ready...'
+      kafka-topics --bootstrap-server kafka:9093 --list
+
+      echo 'Creating Kafka topics...'
+      kafka-topics --bootstrap-server kafka:9093 --create --if-not-exists --topic tracking.events.raw --partitions 3 --replication-factor 1
+      kafka-topics --bootstrap-server kafka:9093 --create --if-not-exists --topic tracking.events.validated --partitions 3 --replication-factor 1
+      kafka-topics --bootstrap-server kafka:9093 --create --if-not-exists --topic tracking.predictions --partitions 3 --replication-factor 1
+      kafka-topics --bootstrap-server kafka:9093 --create --if-not-exists --topic tracking.alerts --partitions 3 --replication-factor 1
+      kafka-topics --bootstrap-server kafka:9093 --create --if-not-exists --topic tracking.audit --partitions 3 --replication-factor 1
+
+      echo 'Listing all topics:'
+      kafka-topics --bootstrap-server kafka:9093 --list
+      "
+    networks:
+      - supplysight-network
+
+  # Kafka UI (optional, for debugging)
+  kafka-ui:
+    image: provectuslabs/kafka-ui:latest
+    container_name: supplysight-kafka-ui
+    depends_on:
+      kafka:
+        condition: service_healthy
+    ports:
+      - "9090:8080"
+    environment:
+      KAFKA_CLUSTERS_0_NAME: supplysight
+      KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS: kafka:9093
+      KAFKA_CLUSTERS_0_ZOOKEEPER: zookeeper:2181
+    networks:
+      - supplysight-network
+
+  # PgAdmin (optional, for database management)
+  pgadmin:
+    image: dpage/pgadmin4:latest
+    container_name: supplysight-pgadmin
+    environment:
+      PGADMIN_DEFAULT_EMAIL: admin@supplysight.com
+      PGADMIN_DEFAULT_PASSWORD: admin
+    ports:
+      - "5050:80"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - supplysight-network
+
+volumes:
+  postgres_data:
+  redis_data:
+
+networks:
+  supplysight-network:
+    driver: bridge

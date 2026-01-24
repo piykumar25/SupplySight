@@ -1,0 +1,22 @@
+server:
+  port: 8090
+
+spring:
+  application:
+    name: sample-data-generator
+
+# API Gateway URL
+gateway:
+  url: ${GATEWAY_URL:http://localhost:8080}
+
+# Generator configuration
+generator:
+  default-tenant-id: ${DEFAULT_TENANT_ID:}
+  events-per-shipment: ${EVENTS_PER_SHIPMENT:10}
+  delay-between-events-ms: ${DELAY_BETWEEN_EVENTS_MS:1000}
+  batch-size: ${BATCH_SIZE:10}
+
+logging:
+  level:
+    com.supplysight: INFO
+    org.springframework: WARN
