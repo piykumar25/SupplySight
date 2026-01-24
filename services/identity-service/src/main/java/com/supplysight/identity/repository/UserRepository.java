@@ -35,7 +35,8 @@ public interface UserRepository extends JpaRepository<User, UUID> {
     Page<User> findAllByTenantId(@Param("tenantId") UUID tenantId, Pageable pageable);
 
     @Query("SELECT u FROM User u WHERE u.tenantId = :tenantId AND u.status = :status")
-    Page<User> findByTenantIdAndStatus(@Param("tenantId") UUID tenantId, @Param("status") UserStatus status, Pageable pageable);
+    Page<User> findByTenantIdAndStatus(@Param("tenantId") UUID tenantId, @Param("status") UserStatus status,
+            Pageable pageable);
 
     // Existence checks
     @Query("SELECT COUNT(u) > 0 FROM User u WHERE u.tenantId = :tenantId AND u.email = :email")
@@ -67,4 +68,7 @@ public interface UserRepository extends JpaRepository<User, UUID> {
     // Global query for authentication (used before tenant context is established)
     @Query("SELECT u FROM User u WHERE u.email = :email AND u.status = 'ACTIVE'")
     Optional<User> findByEmailForAuth(@Param("email") String email);
+
+    @Query("SELECT COUNT(u) > 0 FROM User u WHERE u.email = :email")
+    boolean existsByEmail(@Param("email") String email);
 }

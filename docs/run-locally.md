@@ -62,6 +62,27 @@ mvn spring-boot:run
 java -jar target/identity-service-1.0.0-SNAPSHOT.jar
 ```
 
+Then start the Tracking Service (Port 8083):
+```bash
+cd services/tracking-service
+mvn spring-boot:run
+```
+
+### 5. Start Frontend UI
+
+The frontend is a React application located in `supplysight-web`.
+
+```bash
+cd supplysight-web
+npm install
+npm run dev
+```
+
+Open [http://localhost:5173](http://localhost:5173) in your browser.
+
+> **Note**: If backend services are not running, the frontend will automatically switch to **Demo Mode** (indicated by warnings) but remains fully functional for demonstration.
+
+
 ## Environment Variables
 
 ### Infrastructure Defaults
@@ -183,7 +204,14 @@ Verify PostgreSQL is accepting connections:
 docker exec -it supplysight-postgres pg_isready
 ```
 
-### Port Conflicts
+### Database Connection Issues (Windows/Docker)
+
+If services fail with `FATAL: password authentication failed` despite correct credentials, it is likely a Docker networking issue on Windows.
+
+**Workaround**:
+1. Check container IP: `docker inspect -f "{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}" supplysight-postgres`
+2. Update `application.yml` to use `127.0.0.1` explicitly instead of `localhost`.
+3. Ensure the password in `application.yml` matches exactly what is inside the container (verify with `docker exec`).
 
 If ports are in use, modify `docker-compose.yml` or stop conflicting services.
 

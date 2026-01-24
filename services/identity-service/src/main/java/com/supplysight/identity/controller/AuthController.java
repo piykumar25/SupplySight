@@ -33,23 +33,26 @@ public class AuthController {
         this.userService = userService;
     }
 
+    @PostMapping("/register")
+    @Operation(summary = "Register", description = "Register a new user and tenant")
+    @ApiResponses(value = {
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "Registration successful"),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "400", description = "Invalid input or email already exists")
+    })
+    public ResponseEntity<ApiResponse<Void>> register(@Valid @RequestBody AuthDto.RegisterRequest request) {
+        authenticationService.register(request);
+        return ResponseEntity.ok(ApiResponse.success(null));
+    }
+
     @PostMapping("/login")
     @Operation(summary = "Login", description = "Authenticate with email and password to receive JWT tokens")
     @ApiResponses(value = {
-        @io.swagger.v3.oas.annotations.responses.ApiResponse(
-            responseCode = "200",
-            description = "Login successful",
-            content = @Content(schema = @Schema(implementation = AuthDto.LoginResponse.class))
-        ),
-        @io.swagger.v3.oas.annotations.responses.ApiResponse(
-            responseCode = "401",
-            description = "Invalid credentials"
-        )
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "Login successful", content = @Content(schema = @Schema(implementation = AuthDto.LoginResponse.class))),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "401", description = "Invalid credentials")
     })
     public ResponseEntity<ApiResponse<AuthDto.LoginResponse>> login(
             @Valid @RequestBody AuthDto.LoginRequest request,
-            HttpServletRequest httpRequest
-    ) {
+            HttpServletRequest httpRequest) {
         String ipAddress = getClientIp(httpRequest);
         String userAgent = httpRequest.getHeader("User-Agent");
 
@@ -60,18 +63,11 @@ public class AuthController {
     @PostMapping("/refresh")
     @Operation(summary = "Refresh Token", description = "Get a new access token using refresh token")
     @ApiResponses(value = {
-        @io.swagger.v3.oas.annotations.responses.ApiResponse(
-            responseCode = "200",
-            description = "Token refreshed successfully"
-        ),
-        @io.swagger.v3.oas.annotations.responses.ApiResponse(
-            responseCode = "401",
-            description = "Invalid or expired refresh token"
-        )
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "Token refreshed successfully"),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "401", description = "Invalid or expired refresh token")
     })
     public ResponseEntity<ApiResponse<AuthDto.RefreshTokenResponse>> refreshToken(
-            @Valid @RequestBody AuthDto.RefreshTokenRequest request
-    ) {
+            @Valid @RequestBody AuthDto.RefreshTokenRequest request) {
         AuthDto.RefreshTokenResponse response = authenticationService.refreshToken(request);
         return ResponseEntity.ok(ApiResponse.success(response));
     }
@@ -80,8 +76,7 @@ public class AuthController {
     @Operation(summary = "Logout", description = "Revoke refresh token and end session")
     @PreAuthorize("isAuthenticated()")
     public ResponseEntity<ApiResponse<Void>> logout(
-            @RequestBody(required = false) AuthDto.LogoutRequest request
-    ) {
+            @RequestBody(required = false) AuthDto.LogoutRequest request) {
         authenticationService.logout(request != null ? request : new AuthDto.LogoutRequest(null));
         return ResponseEntity.ok(ApiResponse.success(null));
     }

@@ -5,7 +5,7 @@ spring:
   datasource:
     url: jdbc:postgresql://${POSTGRES_HOST:localhost}:${POSTGRES_PORT:5432}/${POSTGRES_DB:supplysight}
     username: ${POSTGRES_USER:supplysight}
-    password: ${POSTGRES_PASSWORD:supplysight_secret}
+    password: ${POSTGRES_PASSWORD:pass123}
     hikari:
       maximum-pool-size: 20
       minimum-idle: 5

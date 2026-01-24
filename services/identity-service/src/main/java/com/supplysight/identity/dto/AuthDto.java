@@ -12,30 +12,42 @@ import java.util.UUID;
  */
 public final class AuthDto {
 
-    private AuthDto() {}
+    private AuthDto() {
+    }
 
     /**
      * Login request with email and password.
      */
     public record LoginRequest(
-        @NotBlank(message = "Email is required")
-        @Email(message = "Invalid email format")
-        String email,
+            @NotBlank(message = "Email is required") @Email(message = "Invalid email format") String email,
 
-        @NotBlank(message = "Password is required")
-        String password
-    ) {}
+            @NotBlank(message = "Password is required") String password) {
+    }
+
+    /**
+     * Registration request.
+     */
+    public record RegisterRequest(
+            @NotBlank(message = "Email is required") @Email(message = "Invalid email format") String email,
+
+            @NotBlank(message = "Username is required") String username,
+
+            @NotBlank(message = "Password is required") String password,
+
+            @NotBlank(message = "Full name is required") String fullName,
+
+            String tenantName) {
+    }
 
     /**
      * Login response with tokens.
      */
     public record LoginResponse(
-        String accessToken,
-        String refreshToken,
-        String tokenType,
-        long expiresIn,
-        UserInfo user
-    ) {
+            String accessToken,
+            String refreshToken,
+            String tokenType,
+            long expiresIn,
+            UserInfo user) {
         public static LoginResponse of(String accessToken, String refreshToken, long expiresIn, UserInfo user) {
             return new LoginResponse(accessToken, refreshToken, "Bearer", expiresIn, user);
         }
@@ -45,18 +57,16 @@ public final class AuthDto {
      * Refresh token request.
      */
     public record RefreshTokenRequest(
-        @NotBlank(message = "Refresh token is required")
-        String refreshToken
-    ) {}
+            @NotBlank(message = "Refresh token is required") String refreshToken) {
+    }
 
     /**
      * Token refresh response.
      */
     public record RefreshTokenResponse(
-        String accessToken,
-        String tokenType,
-        long expiresIn
-    ) {
+            String accessToken,
+            String tokenType,
+            long expiresIn) {
         public static RefreshTokenResponse of(String accessToken, long expiresIn) {
             return new RefreshTokenResponse(accessToken, "Bearer", expiresIn);
         }
@@ -66,31 +76,31 @@ public final class AuthDto {
      * Logout request.
      */
     public record LogoutRequest(
-        String refreshToken
-    ) {}
+            String refreshToken) {
+    }
 
     /**
      * User info included in login response.
      */
     public record UserInfo(
-        UUID id,
-        UUID tenantId,
-        String tenantCode,
-        String email,
-        String username,
-        String fullName,
-        Set<String> roles
-    ) {}
+            UUID id,
+            UUID tenantId,
+            String tenantCode,
+            String email,
+            String username,
+            String fullName,
+            Set<String> roles) {
+    }
 
     /**
      * Token claims for JWT validation.
      */
     public record TokenClaims(
-        UUID userId,
-        UUID tenantId,
-        String username,
-        Set<String> roles,
-        Instant issuedAt,
-        Instant expiresAt
-    ) {}
+            UUID userId,
+            UUID tenantId,
+            String username,
+            Set<String> roles,
+            Instant issuedAt,
+            Instant expiresAt) {
+    }
 }

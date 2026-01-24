@@ -51,8 +51,7 @@ public class AuthenticationService {
             PasswordEncoder passwordEncoder,
             JwtTokenProvider jwtTokenProvider,
             @Value("${jwt.access-token-validity-ms:3600000}") long accessTokenValidityMs,
-            @Value("${jwt.refresh-token-validity-ms:86400000}") long refreshTokenValidityMs
-    ) {
+            @Value("${jwt.refresh-token-validity-ms:86400000}") long refreshTokenValidityMs) {
         this.userRepository = userRepository;
         this.tenantRepository = tenantRepository;
         this.refreshTokenRepository = refreshTokenRepository;
@@ -60,6 +59,43 @@ public class AuthenticationService {
         this.jwtTokenProvider = jwtTokenProvider;
         this.accessTokenValidityMs = accessTokenValidityMs;
         this.refreshTokenValidityMs = refreshTokenValidityMs;
+    }
+
+    /**
+     * Register a new user.
+     */
+    @Transactional
+    public void register(AuthDto.RegisterRequest request) {
+        log.info("Registration attempt for email: {}", request.email());
+
+        if (userRepository.existsByEmail(request.email())) {
+            throw new ValidationException("Email already registered");
+        }
+
+        // Create or find tenant (simplification for demo: creation)
+        Tenant tenant = new Tenant();
+        tenant.setName(request.tenantName() != null ? request.tenantName() : "Demo Tenant");
+        tenant.setCode(request.tenantName() != null ? request.tenantName().toLowerCase().replaceAll("\\s+", "-")
+                : "demo-tenant-" + UUID.randomUUID().toString().substring(0, 8));
+        tenant.setStatus(Tenant.TenantStatus.ACTIVE);
+        tenant = tenantRepository.save(tenant);
+
+        User user = new User();
+        user.setTenantId(tenant.getId());
+        user.setEmail(request.email().toLowerCase());
+        user.setUsername(request.username());
+        String[] names = request.fullName().trim().split(" ", 2);
+        user.setFirstName(names[0]);
+        if (names.length > 1) {
+            user.setLastName(names[1]);
+        }
+        user.setPasswordHash(passwordEncoder.encode(request.password()));
+        user.setStatus(User.UserStatus.ACTIVE);
+        user.setCreatedAt(Instant.now());
+        user.setRoles("USER"); // Default role
+
+        userRepository.save(user);
+        log.info("User registered successfully: {}", user.getEmail());
     }
 
     /**
@@ -103,8 +139,7 @@ public class AuthenticationService {
                 user.getId(),
                 user.getTenantId(),
                 user.getUsername(),
-                user.getRolesSet()
-        );
+                user.getRolesSet());
 
         String refreshToken = createRefreshToken(user, ipAddress, userAgent);
 
@@ -121,9 +156,7 @@ public class AuthenticationService {
                         user.getEmail(),
                         user.getUsername(),
                         user.getFullName(),
-                        user.getRolesSet()
-                )
-        );
+                        user.getRolesSet()));
     }
 
     /**
@@ -149,8 +182,7 @@ public class AuthenticationService {
                 user.getId(),
                 user.getTenantId(),
                 user.getUsername(),
-                user.getRolesSet()
-        );
+                user.getRolesSet());
 
         log.info("Token refreshed for user: {}", user.getEmail());
 
@@ -219,7 +251,8 @@ public class AuthenticationService {
     }
 
     private String truncateString(String str, int maxLength) {
-        if (str == null) return null;
+        if (str == null)
+            return null;
         return str.length() > maxLength ? str.substring(0, maxLength) : str;
     }
 }

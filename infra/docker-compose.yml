@@ -7,7 +7,7 @@ services:
     container_name: supplysight-postgres
     environment:
       POSTGRES_USER: supplysight
-      POSTGRES_PASSWORD: supplysight_secret
+      POSTGRES_PASSWORD: supplysight_secret_new
       POSTGRES_DB: supplysight
     ports:
       - "5432:5432"
