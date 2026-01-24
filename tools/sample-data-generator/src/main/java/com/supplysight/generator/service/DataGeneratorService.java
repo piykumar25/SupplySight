@@ -24,23 +24,20 @@ public class DataGeneratorService {
 
     // Indian cities with coordinates
     private static final Map<String, double[]> INDIAN_CITIES = Map.of(
-            "Mumbai", new double[]{19.0760, 72.8777},
-            "Delhi", new double[]{28.6139, 77.2090},
-            "Bangalore", new double[]{12.9716, 77.5946},
-            "Hyderabad", new double[]{17.3850, 78.4867},
-            "Chennai", new double[]{13.0827, 80.2707},
-            "Kolkata", new double[]{22.5726, 88.3639},
-            "Pune", new double[]{18.5204, 73.8567},
-            "Ahmedabad", new double[]{23.0225, 72.5714}
-    );
+            "Mumbai", new double[] { 19.0760, 72.8777 },
+            "Delhi", new double[] { 28.6139, 77.2090 },
+            "Bangalore", new double[] { 12.9716, 77.5946 },
+            "Hyderabad", new double[] { 17.3850, 78.4867 },
+            "Chennai", new double[] { 13.0827, 80.2707 },
+            "Kolkata", new double[] { 22.5726, 88.3639 },
+            "Pune", new double[] { 18.5204, 73.8567 },
+            "Ahmedabad", new double[] { 23.0225, 72.5714 });
 
     private static final List<String> EVENT_TYPES = List.of(
-            "CREATED", "PICKED_UP", "IN_TRANSIT", "AT_HUB", "OUT_FOR_DELIVERY", "DELIVERED", "EXCEPTION"
-    );
+            "CREATED", "PICKED_UP", "IN_TRANSIT", "AT_HUB", "OUT_FOR_DELIVERY", "DELIVERED", "EXCEPTION");
 
     private static final List<String> EVENT_SOURCES = List.of(
-            "GPS_DEVICE", "SCANNER", "MOBILE_APP", "API_WEBHOOK"
-    );
+            "GPS_DEVICE", "SCANNER", "MOBILE_APP", "API_WEBHOOK");
 
     /**
      * Generate a shipment with realistic data.
@@ -84,13 +81,13 @@ public class DataGeneratorService {
         // Calculate distance and estimated transit time
         double distance = calculateDistance(
                 shipment.getOriginLat(), shipment.getOriginLon(),
-                shipment.getDestinationLat(), shipment.getDestinationLon()
-        );
+                shipment.getDestinationLat(), shipment.getDestinationLon());
         long estimatedDurationHours = (long) (distance / 60.0); // Assume 60 km/h average
 
         int eventCount = 0;
         for (String eventType : EVENT_TYPES) {
-            if (eventCount >= eventsPerShipment) break;
+            if (eventCount >= eventsPerShipment)
+                break;
 
             // Progress towards destination
             if (eventType.equals("IN_TRANSIT") && eventCount < eventsPerShipment - 2) {
@@ -98,9 +95,9 @@ public class DataGeneratorService {
                 int transitEvents = Math.min(3, eventsPerShipment - eventCount - 2);
                 for (int i = 0; i < transitEvents; i++) {
                     double progress = (double) (i + 1) / (transitEvents + 1);
-                    currentLat = shipment.getOriginLat() + 
+                    currentLat = shipment.getOriginLat() +
                             (shipment.getDestinationLat() - shipment.getOriginLat()) * progress;
-                    currentLon = shipment.getOriginLon() + 
+                    currentLon = shipment.getOriginLon() +
                             (shipment.getDestinationLon() - shipment.getOriginLon()) * progress;
                     currentCity = getNearestCity(currentLat, currentLon);
 
@@ -109,16 +106,16 @@ public class DataGeneratorService {
                             .shipmentId(shipment.getShipmentId())
                             .tenantId(shipment.getTenantId())
                             .eventType("IN_TRANSIT")
-                            .eventTime(currentTime.plusSeconds(estimatedDurationHours * 3600 / (transitEvents + 1) * (i + 1)))
+                            .eventTime(currentTime
+                                    .plusSeconds(estimatedDurationHours * 3600 / (transitEvents + 1) * (i + 1)))
                             .source(getRandomElement(EVENT_SOURCES))
                             .lat(currentLat + ThreadLocalRandom.current().nextDouble(-0.1, 0.1))
                             .lon(currentLon + ThreadLocalRandom.current().nextDouble(-0.1, 0.1))
-                            .hubCode(currentCity.substring(0, 3).toUpperCase() + "-HUB-" + 
+                            .hubCode(currentCity.substring(0, 3).toUpperCase() + "-HUB-" +
                                     String.format("%02d", ThreadLocalRandom.current().nextInt(1, 10)))
                             .payload(Map.of(
                                     "speedKmph", ThreadLocalRandom.current().nextInt(40, 80),
-                                    "heading", ThreadLocalRandom.current().nextInt(0, 360)
-                            ))
+                                    "heading", ThreadLocalRandom.current().nextInt(0, 360)))
                             .build();
                     events.add(event);
                     eventCount++;
@@ -143,8 +140,9 @@ public class DataGeneratorService {
                     .source(getRandomElement(EVENT_SOURCES))
                     .lat(currentLat)
                     .lon(currentLon)
-                    .hubCode(eventType.equals("AT_HUB") || eventType.equals("OUT_FOR_DELIVERY") ?
-                            currentCity.substring(0, 3).toUpperCase() + "-HUB-01" : null)
+                    .hubCode(eventType.equals("AT_HUB") || eventType.equals("OUT_FOR_DELIVERY")
+                            ? currentCity.substring(0, 3).toUpperCase() + "-HUB-01"
+                            : null)
                     .payload(generatePayloadForEvent(eventType))
                     .build();
 
@@ -175,7 +173,8 @@ public class DataGeneratorService {
                 break;
             case "OUT_FOR_DELIVERY":
                 payload.put("driverName", faker.name().fullName());
-                payload.put("estimatedDeliveryTime", Instant.now().plusHours(2).toString());
+                payload.put("estimatedDeliveryTime",
+                        Instant.now().plus(2, java.time.temporal.ChronoUnit.HOURS).toString());
                 break;
             case "DELIVERED":
                 payload.put("deliveredTo", faker.name().fullName());
@@ -183,8 +182,7 @@ public class DataGeneratorService {
                 break;
             case "EXCEPTION":
                 payload.put("reason", getRandomElement(List.of(
-                        "Address not found", "Recipient unavailable", "Damaged package", "Weather delay"
-                )));
+                        "Address not found", "Recipient unavailable", "Damaged package", "Weather delay")));
                 break;
         }
         return payload;
@@ -215,7 +213,7 @@ public class DataGeneratorService {
         double lonDistance = Math.toRadians(lon2 - lon1);
         double a = Math.sin(latDistance / 2) * Math.sin(latDistance / 2)
                 + Math.cos(Math.toRadians(lat1)) * Math.cos(Math.toRadians(lat2))
-                * Math.sin(lonDistance / 2) * Math.sin(lonDistance / 2);
+                        * Math.sin(lonDistance / 2) * Math.sin(lonDistance / 2);
         double c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
         return R * c;
     }

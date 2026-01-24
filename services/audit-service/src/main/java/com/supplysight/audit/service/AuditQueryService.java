@@ -24,191 +24,185 @@ import java.util.stream.Collectors;
 @Transactional(readOnly = true)
 public class AuditQueryService {
 
-    private final AuditLogRepository auditLogRepository;
-    private final AuditStatisticsRepository statisticsRepository;
+        private final AuditLogRepository auditLogRepository;
+        private final AuditStatisticsRepository statisticsRepository;
 
-    public AuditQueryService(
-            AuditLogRepository auditLogRepository,
-            AuditStatisticsRepository statisticsRepository
-    ) {
-        this.auditLogRepository = auditLogRepository;
-        this.statisticsRepository = statisticsRepository;
-    }
+        public AuditQueryService(
+                        AuditLogRepository auditLogRepository,
+                        AuditStatisticsRepository statisticsRepository) {
+                this.auditLogRepository = auditLogRepository;
+                this.statisticsRepository = statisticsRepository;
+        }
 
-    /**
-     * Get paginated audit logs for a tenant.
-     */
-    public PageResponse<AuditLogDto.Response> getAuditLogs(UUID tenantId, int page, int size) {
-        Pageable pageable = PageRequest.of(page, size);
-        Page<AuditLog> logs = auditLogRepository.findByTenantIdOrderByEventTimeDesc(tenantId, pageable);
-        return mapToPageResponse(logs);
-    }
+        /**
+         * Get paginated audit logs for a tenant.
+         */
+        public PageResponse<AuditLogDto.Response> getAuditLogs(UUID tenantId, int page, int size) {
+                Pageable pageable = PageRequest.of(page, size);
+                Page<AuditLog> logs = auditLogRepository.findByTenantIdOrderByEventTimeDesc(tenantId, pageable);
+                return mapToPageResponse(logs);
+        }
 
-    /**
-     * Search audit logs with filters.
-     */
-    public PageResponse<AuditLogDto.Response> searchAuditLogs(
-            UUID tenantId, AuditLogDto.SearchRequest request) {
-        
-        Instant startTime = request.getStartTime() != null 
-                ? request.getStartTime() 
-                : Instant.now().minus(30, ChronoUnit.DAYS);
-        Instant endTime = request.getEndTime() != null 
-                ? request.getEndTime() 
-                : Instant.now();
+        /**
+         * Search audit logs with filters.
+         */
+        public PageResponse<AuditLogDto.Response> searchAuditLogs(
+                        UUID tenantId, AuditLogDto.SearchRequest request) {
 
-        Pageable pageable = PageRequest.of(request.getPage(), request.getSize());
-        
-        Page<AuditLog> logs = auditLogRepository.searchAuditLogs(
-                tenantId,
-                request.getAction(),
-                request.getUserId(),
-                request.getResourceType(),
-                startTime,
-                endTime,
-                pageable
-        );
+                Instant startTime = request.getStartTime() != null
+                                ? request.getStartTime()
+                                : Instant.now().minus(30, ChronoUnit.DAYS);
+                Instant endTime = request.getEndTime() != null
+                                ? request.getEndTime()
+                                : Instant.now();
 
-        return mapToPageResponse(logs);
-    }
+                Pageable pageable = PageRequest.of(request.getPage(), request.getSize());
 
-    /**
-     * Get audit logs for a specific user.
-     */
-    public PageResponse<AuditLogDto.Response> getAuditLogsByUser(
-            UUID tenantId, UUID userId, int page, int size) {
-        Pageable pageable = PageRequest.of(page, size);
-        Page<AuditLog> logs = auditLogRepository.findByTenantIdAndUserIdOrderByEventTimeDesc(
-                tenantId, userId, pageable);
-        return mapToPageResponse(logs);
-    }
+                Page<AuditLog> logs = auditLogRepository.searchAuditLogs(
+                                tenantId,
+                                request.getAction(),
+                                request.getUserId(),
+                                request.getResourceType(),
+                                startTime,
+                                endTime,
+                                pageable);
 
-    /**
-     * Get audit logs for a specific resource.
-     */
-    public PageResponse<AuditLogDto.Response> getAuditLogsByResource(
-            UUID tenantId, String resourceType, String resourceId, int page, int size) {
-        Pageable pageable = PageRequest.of(page, size);
-        Page<AuditLog> logs = auditLogRepository.findByTenantIdAndResourceTypeAndResourceIdOrderByEventTimeDesc(
-                tenantId, resourceType, resourceId, pageable);
-        return mapToPageResponse(logs);
-    }
+                return mapToPageResponse(logs);
+        }
 
-    /**
-     * Get audit log by correlation ID.
-     */
-    public Optional<AuditLogDto.Response> getAuditLogByCorrelationId(String correlationId) {
-        return auditLogRepository.findByCorrelationId(correlationId)
-                .map(this::mapToResponse);
-    }
+        /**
+         * Get audit logs for a specific user.
+         */
+        public PageResponse<AuditLogDto.Response> getAuditLogsByUser(
+                        UUID tenantId, UUID userId, int page, int size) {
+                Pageable pageable = PageRequest.of(page, size);
+                Page<AuditLog> logs = auditLogRepository.findByTenantIdAndUserIdOrderByEventTimeDesc(
+                                tenantId, userId, pageable);
+                return mapToPageResponse(logs);
+        }
 
-    /**
-     * Get audit summary for a tenant.
-     */
-    public AuditLogDto.AuditSummary getAuditSummary(UUID tenantId) {
-        Instant now = Instant.now();
-        Instant last24Hours = now.minus(24, ChronoUnit.HOURS);
-        Instant last30Days = now.minus(30, ChronoUnit.DAYS);
+        /**
+         * Get audit logs for a specific resource.
+         */
+        public PageResponse<AuditLogDto.Response> getAuditLogsByResource(
+                        UUID tenantId, String resourceType, String resourceId, int page, int size) {
+                Pageable pageable = PageRequest.of(page, size);
+                Page<AuditLog> logs = auditLogRepository.findByTenantIdAndResourceTypeAndResourceIdOrderByEventTimeDesc(
+                                tenantId, resourceType, resourceId, pageable);
+                return mapToPageResponse(logs);
+        }
 
-        long totalEvents = auditLogRepository.countRecentByTenant(tenantId, last30Days);
-        long last24HoursCount = auditLogRepository.countRecentByTenant(tenantId, last24Hours);
+        /**
+         * Get audit log by correlation ID.
+         */
+        public Optional<AuditLogDto.Response> getAuditLogByCorrelationId(String correlationId) {
+                return auditLogRepository.findByCorrelationId(correlationId)
+                                .map(this::mapToResponse);
+        }
 
-        List<Object[]> actionCounts = auditLogRepository.countByActionForTenant(
-                tenantId, last30Days, now);
-        
-        Map<String, Long> actionCountMap = actionCounts.stream()
-                .collect(Collectors.toMap(
-                        row -> (String) row[0],
-                        row -> (Long) row[1]
-                ));
+        /**
+         * Get audit summary for a tenant.
+         */
+        public AuditLogDto.AuditSummary getAuditSummary(UUID tenantId) {
+                Instant now = Instant.now();
+                Instant last24Hours = now.minus(24, ChronoUnit.HOURS);
+                Instant last30Days = now.minus(30, ChronoUnit.DAYS);
 
-        return AuditLogDto.AuditSummary.builder()
-                .tenantId(tenantId)
-                .totalEvents(totalEvents)
-                .last24Hours(last24HoursCount)
-                .actionCounts(actionCountMap)
-                .generatedAt(now)
-                .build();
-    }
+                long totalEvents = auditLogRepository.countRecentByTenant(tenantId, last30Days);
+                long last24HoursCount = auditLogRepository.countRecentByTenant(tenantId, last24Hours);
 
-    /**
-     * Generate compliance report for a date range.
-     */
-    public AuditLogDto.ComplianceReport generateComplianceReport(
-            UUID tenantId, LocalDate startDate, LocalDate endDate) {
-        
-        Instant startTime = startDate.atStartOfDay().toInstant(java.time.ZoneOffset.UTC);
-        Instant endTime = endDate.plusDays(1).atStartOfDay().toInstant(java.time.ZoneOffset.UTC);
+                List<Object[]> actionCounts = auditLogRepository.countByActionForTenant(
+                                tenantId, last30Days, now);
 
-        // Get action summary
-        List<Object[]> actionSummary = statisticsRepository.getActionSummary(
-                tenantId, startDate, endDate);
-        Map<String, Long> eventsByAction = actionSummary.stream()
-                .collect(Collectors.toMap(
-                        row -> (String) row[0],
-                        row -> (Long) row[1]
-                ));
+                Map<String, Long> actionCountMap = actionCounts.stream()
+                                .collect(Collectors.toMap(
+                                                row -> (String) row[0],
+                                                row -> (Long) row[1]));
 
-        long totalEvents = eventsByAction.values().stream().mapToLong(Long::longValue).sum();
+                return AuditLogDto.AuditSummary.builder()
+                                .tenantId(tenantId)
+                                .totalEvents(totalEvents)
+                                .last24Hours(last24HoursCount)
+                                .actionCounts(actionCountMap)
+                                .generatedAt(now)
+                                .build();
+        }
 
-        return AuditLogDto.ComplianceReport.builder()
-                .tenantId(tenantId)
-                .startDate(startDate)
-                .endDate(endDate)
-                .totalAuditEvents(totalEvents)
-                .eventsByAction(eventsByAction)
-                .eventsByUser(new HashMap<>()) // Can be enhanced to include user breakdown
-                .eventsByResourceType(new HashMap<>()) // Can be enhanced to include resource breakdown
-                .generatedAt(Instant.now())
-                .build();
-    }
+        /**
+         * Generate compliance report for a date range.
+         */
+        public AuditLogDto.ComplianceReport generateComplianceReport(
+                        UUID tenantId, LocalDate startDate, LocalDate endDate) {
 
-    /**
-     * Get daily statistics for a date range.
-     */
-    public List<AuditLogDto.DailyStats> getDailyStats(
-            UUID tenantId, LocalDate startDate, LocalDate endDate) {
-        
-        List<Object[]> dailyTotals = statisticsRepository.getDailyTotals(
-                tenantId, startDate, endDate);
-        
-        return dailyTotals.stream()
-                .map(row -> AuditLogDto.DailyStats.builder()
-                        .date((LocalDate) row[0])
-                        .count((Long) row[1])
-                        .build())
-                .collect(Collectors.toList());
-    }
+                Instant startTime = startDate.atStartOfDay().toInstant(java.time.ZoneOffset.UTC);
+                Instant endTime = endDate.plusDays(1).atStartOfDay().toInstant(java.time.ZoneOffset.UTC);
 
-    private PageResponse<AuditLogDto.Response> mapToPageResponse(Page<AuditLog> page) {
-        List<AuditLogDto.Response> content = page.getContent().stream()
-                .map(this::mapToResponse)
-                .collect(Collectors.toList());
+                // Get action summary
+                List<Object[]> actionSummary = statisticsRepository.getActionSummary(
+                                tenantId, startDate, endDate);
+                Map<String, Long> eventsByAction = actionSummary.stream()
+                                .collect(Collectors.toMap(
+                                                row -> (String) row[0],
+                                                row -> (Long) row[1]));
 
-        return PageResponse.<AuditLogDto.Response>builder()
-                .content(content)
-                .page(page.getNumber())
-                .size(page.getSize())
-                .totalElements(page.getTotalElements())
-                .totalPages(page.getTotalPages())
-                .build();
-    }
+                long totalEvents = eventsByAction.values().stream().mapToLong(Long::longValue).sum();
 
-    private AuditLogDto.Response mapToResponse(AuditLog auditLog) {
-        return AuditLogDto.Response.builder()
-                .eventId(auditLog.getEventId())
-                .tenantId(auditLog.getTenantId())
-                .userId(auditLog.getUserId())
-                .username(auditLog.getUsername())
-                .action(auditLog.getAction())
-                .resourceType(auditLog.getResourceType())
-                .resourceId(auditLog.getResourceId())
-                .eventTime(auditLog.getEventTime())
-                .sourceIp(auditLog.getSourceIp())
-                .userAgent(auditLog.getUserAgent())
-                .details(auditLog.getDetails())
-                .correlationId(auditLog.getCorrelationId())
-                .createdAt(auditLog.getCreatedAt())
-                .build();
-    }
+                return AuditLogDto.ComplianceReport.builder()
+                                .tenantId(tenantId)
+                                .startDate(startDate)
+                                .endDate(endDate)
+                                .totalAuditEvents(totalEvents)
+                                .eventsByAction(eventsByAction)
+                                .eventsByUser(new HashMap<>()) // Can be enhanced to include user breakdown
+                                .eventsByResourceType(new HashMap<>()) // Can be enhanced to include resource breakdown
+                                .generatedAt(Instant.now())
+                                .build();
+        }
+
+        /**
+         * Get daily statistics for a date range.
+         */
+        public List<AuditLogDto.DailyStats> getDailyStats(
+                        UUID tenantId, LocalDate startDate, LocalDate endDate) {
+
+                List<Object[]> dailyTotals = statisticsRepository.getDailyTotals(
+                                tenantId, startDate, endDate);
+
+                return dailyTotals.stream()
+                                .map(row -> AuditLogDto.DailyStats.builder()
+                                                .date((LocalDate) row[0])
+                                                .count((Long) row[1])
+                                                .build())
+                                .collect(Collectors.toList());
+        }
+
+        private PageResponse<AuditLogDto.Response> mapToPageResponse(Page<AuditLog> page) {
+                List<AuditLogDto.Response> content = page.getContent().stream()
+                                .map(this::mapToResponse)
+                                .collect(Collectors.toList());
+
+                return PageResponse.of(
+                                content,
+                                page.getNumber(),
+                                page.getSize(),
+                                page.getTotalElements());
+        }
+
+        private AuditLogDto.Response mapToResponse(AuditLog auditLog) {
+                return AuditLogDto.Response.builder()
+                                .eventId(auditLog.getEventId())
+                                .tenantId(auditLog.getTenantId())
+                                .userId(auditLog.getUserId())
+                                .username(auditLog.getUsername())
+                                .action(auditLog.getAction())
+                                .resourceType(auditLog.getResourceType())
+                                .resourceId(auditLog.getResourceId())
+                                .eventTime(auditLog.getEventTime())
+                                .sourceIp(auditLog.getSourceIp())
+                                .userAgent(auditLog.getUserAgent())
+                                .details(auditLog.getDetails())
+                                .correlationId(auditLog.getCorrelationId())
+                                .createdAt(auditLog.getCreatedAt())
+                                .build();
+        }
 }

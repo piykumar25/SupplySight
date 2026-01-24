@@ -3,7 +3,7 @@ package com.supplysight.audit.config;
 import com.supplysight.common.security.JwtAuthenticationFilter;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.http.HttpMethod;
+
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
@@ -36,18 +36,16 @@ public class SecurityConfig {
         return http
                 .csrf(AbstractHttpConfigurer::disable)
                 .cors(cors -> cors.configurationSource(corsConfigurationSource()))
-                .sessionManagement(session -> 
-                        session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+                .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
                         // Public endpoints
                         .requestMatchers("/actuator/**").permitAll()
                         .requestMatchers("/api-docs/**", "/swagger-ui/**", "/swagger-ui.html").permitAll()
-                        
+
                         // Audit endpoints require authentication
                         .requestMatchers("/api/v1/audit/**").authenticated()
-                        
-                        .anyRequest().authenticated()
-                )
+
+                        .anyRequest().authenticated())
                 .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class)
                 .build();
     }

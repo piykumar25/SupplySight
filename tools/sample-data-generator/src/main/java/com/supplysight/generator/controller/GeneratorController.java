@@ -1,6 +1,7 @@
 package com.supplysight.generator.controller;
 
 import com.supplysight.generator.service.DataGeneratorService;
+import com.supplysight.generator.service.DataIngestionService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -25,7 +26,7 @@ public class GeneratorController {
     public ResponseEntity<Map<String, Object>> generateShipments(
             @PathVariable int count,
             @RequestParam(required = false) UUID tenantId) {
-        
+
         if (tenantId == null) {
             tenantId = UUID.randomUUID();
         }
@@ -40,8 +41,8 @@ public class GeneratorController {
             for (DataGeneratorService.ShipmentData shipment : shipments) {
                 try {
                     dataIngestionService.ingestShipment(shipment);
-                    List<DataGeneratorService.EventData> events = 
-                            dataGeneratorService.generateEventsForShipment(shipment);
+                    List<DataGeneratorService.EventData> events = dataGeneratorService
+                            .generateEventsForShipment(shipment);
                     for (DataGeneratorService.EventData event : events) {
                         dataIngestionService.ingestEvent(event);
                         Thread.sleep(100); // Small delay between events
@@ -65,7 +66,7 @@ public class GeneratorController {
             @PathVariable UUID shipmentId,
             @RequestParam UUID tenantId,
             @RequestParam(defaultValue = "10") int count) {
-        
+
         // This would require fetching shipment data first
         // For now, generate random events
         Map<String, Object> response = new HashMap<>();

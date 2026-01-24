@@ -72,6 +72,23 @@
             <artifactId>jackson-datatype-jsr310</artifactId>
         </dependency>
 
+        <!-- Logging -->
+        <dependency>
+            <groupId>net.logstash.logback</groupId>
+            <artifactId>logstash-logback-encoder</artifactId>
+            <version>7.4</version>
+        </dependency>
+
+        <!-- Metrics -->
+        <dependency>
+            <groupId>io.micrometer</groupId>
+            <artifactId>micrometer-core</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>io.micrometer</groupId>
+            <artifactId>micrometer-registry-prometheus</artifactId>
+        </dependency>
+
         <!-- Testing -->
         <dependency>
             <groupId>org.springframework.boot</groupId>
