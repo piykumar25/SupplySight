@@ -256,7 +256,7 @@ export const useAuthStore = create<AuthStore>((set, get) => {
 
     // Register auth functions with axios interceptors
     registerAuthFunctions(
-        () => store.accessToken,
+        () => get().accessToken,
         store.refreshAccessToken
     );
 
