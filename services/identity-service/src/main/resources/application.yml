@@ -3,9 +3,9 @@ spring:
     name: identity-service
 
   datasource:
-    url: jdbc:postgresql://${POSTGRES_HOST:localhost}:${POSTGRES_PORT:5432}/${POSTGRES_DB:supplysight}
+    url: jdbc:postgresql://${POSTGRES_HOST:127.0.0.1}:${POSTGRES_PORT:5432}/${POSTGRES_DB:supplysight}
     username: ${POSTGRES_USER:supplysight}
-    password: ${POSTGRES_PASSWORD:pass123}
+    password: ${POSTGRES_PASSWORD:supplysight_secret_new}
     hikari:
       maximum-pool-size: 20
       minimum-idle: 5
@@ -53,7 +53,8 @@ server:
 
 # JWT Configuration
 jwt:
-  secret: ${JWT_SECRET:supplysight-secret-key-that-should-be-at-least-256-bits-long-for-hs256}
+  # Hardcoded secret to ensure consistency across services
+  secret: supplysight-secret-key-that-should-be-at-least-256-bits-long-for-hs256
   access-token-validity-ms: ${JWT_ACCESS_TOKEN_VALIDITY_MS:3600000}
   refresh-token-validity-ms: ${JWT_REFRESH_TOKEN_VALIDITY_MS:86400000}
   issuer: supplysight

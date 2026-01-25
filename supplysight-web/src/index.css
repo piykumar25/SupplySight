@@ -5,21 +5,130 @@
 @tailwind utilities;
 
 @layer base {
+  html {
+    font-family: 'Inter', system-ui, sans-serif;
+  }
+
   body {
-    @apply bg-background text-white font-sans antialiased;
+    @apply bg-background text-white antialiased;
+  }
+
+  /* Custom scrollbar */
+  ::-webkit-scrollbar {
+    @apply w-2 h-2;
+  }
+
+  ::-webkit-scrollbar-track {
+    @apply bg-transparent;
+  }
+
+  ::-webkit-scrollbar-thumb {
+    @apply bg-white/10 rounded-full hover:bg-white/20 transition-colors;
   }
 }
 
 @layer components {
+  /* Glass panel effect */
   .glass-panel {
     @apply bg-surface/70 backdrop-blur-md border border-white/10 rounded-xl shadow-xl;
   }
   
+  /* Primary button */
   .btn-primary {
-    @apply px-4 py-2 bg-gradient-to-r from-primary to-blue-600 rounded-lg font-medium hover:shadow-lg hover:shadow-primary/20 transition-all duration-200 active:scale-95;
+    @apply px-4 py-2.5 bg-gradient-to-r from-primary to-blue-600 rounded-lg font-medium 
+           hover:shadow-lg hover:shadow-primary/20 transition-all duration-200 
+           active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed disabled:active:scale-100;
   }
 
+  /* Secondary button */
+  .btn-secondary {
+    @apply px-4 py-2.5 bg-white/10 border border-white/10 rounded-lg font-medium 
+           hover:bg-white/20 transition-all duration-200 
+           active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed;
+  }
+
+  /* Ghost button */
+  .btn-ghost {
+    @apply px-4 py-2.5 rounded-lg font-medium 
+           hover:bg-white/10 transition-all duration-200 
+           active:scale-95 text-gray-400 hover:text-white;
+  }
+
+  /* Input field */
   .input-field {
-    @apply w-full bg-white/5 border border-white/10 rounded-lg px-4 py-2 text-white focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-transparent transition-all;
+    @apply w-full bg-white/5 border border-white/10 rounded-lg px-4 py-2.5 text-white 
+           placeholder:text-gray-500
+           focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-transparent 
+           transition-all disabled:opacity-50 disabled:cursor-not-allowed;
+  }
+
+  /* Custom scrollbar for specific elements */
+  .custom-scrollbar::-webkit-scrollbar {
+    @apply w-1.5;
+  }
+
+  .custom-scrollbar::-webkit-scrollbar-thumb {
+    @apply bg-white/10 rounded-full;
+  }
+
+  .custom-scrollbar::-webkit-scrollbar-track {
+    @apply bg-transparent;
+  }
+}
+
+@layer utilities {
+  /* Animation utilities */
+  .animate-in {
+    animation: animateIn 0.3s ease-out forwards;
+  }
+
+  @keyframes animateIn {
+    from {
+      opacity: 0;
+      transform: translateY(10px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  .fade-in {
+    animation: fadeIn 0.3s ease-out forwards;
+  }
+
+  @keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+  }
+
+  .zoom-in {
+    animation: zoomIn 0.3s ease-out forwards;
+  }
+
+  @keyframes zoomIn {
+    from {
+      opacity: 0;
+      transform: scale(0.95);
+    }
+    to {
+      opacity: 1;
+      transform: scale(1);
+    }
+  }
+
+  .slide-in-from-bottom-2 {
+    animation: slideInFromBottom 0.3s ease-out forwards;
+  }
+
+  @keyframes slideInFromBottom {
+    from {
+      opacity: 0;
+      transform: translateY(8px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
   }
 }
