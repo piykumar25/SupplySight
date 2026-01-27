@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Package, Search, Filter, AlertTriangle, CheckCircle, Clock } from 'lucide-react';
+import { Search, AlertTriangle, CheckCircle, Clock } from 'lucide-react';
 import { useShipments } from '../hooks/useShipments';
 import { DataTable, Column } from '@/components/ui/DataTable';
 import { Shipment } from '@/types/shipment.types';
@@ -13,7 +13,7 @@ import { useNavigate } from 'react-router-dom';
 export function ShipmentsPage() {
     const navigate = useNavigate();
     const [page, setPage] = useState(0);
-    const [statusFilter, setStatusFilter] = useState<string | undefined>(undefined);
+    const [statusFilter, _setStatusFilter] = useState<string | undefined>(undefined);
     // TODO: Connect setStatusFilter to the UI filter button
 
     // Pagination params
