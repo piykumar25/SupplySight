@@ -21,46 +21,48 @@ import java.time.Duration;
 @EnableCaching
 public class RedisConfig {
 
-    @Bean
-    public RedisTemplate<String, Object> redisTemplate(RedisConnectionFactory connectionFactory) {
-        RedisTemplate<String, Object> template = new RedisTemplate<>();
-        template.setConnectionFactory(connectionFactory);
+        @Bean
+        public RedisTemplate<String, Object> redisTemplate(RedisConnectionFactory connectionFactory) {
+                RedisTemplate<String, Object> template = new RedisTemplate<>();
+                template.setConnectionFactory(connectionFactory);
 
-        var serializer = new GenericJackson2JsonRedisSerializer(objectMapper());
+                var serializer = new GenericJackson2JsonRedisSerializer(objectMapper());
 
-        template.setKeySerializer(new StringRedisSerializer());
-        template.setValueSerializer(serializer);
-        template.setHashKeySerializer(new StringRedisSerializer());
-        template.setHashValueSerializer(serializer);
-        return template;
-    }
+                template.setKeySerializer(new StringRedisSerializer());
+                template.setValueSerializer(serializer);
+                template.setHashKeySerializer(new StringRedisSerializer());
+                template.setHashValueSerializer(serializer);
+                return template;
+        }
 
-    @Bean
-    public CacheManager cacheManager(RedisConnectionFactory connectionFactory) {
-        var serializer = new GenericJackson2JsonRedisSerializer(objectMapper());
+        @Bean
+        public CacheManager cacheManager(RedisConnectionFactory connectionFactory) {
+                var serializer = new GenericJackson2JsonRedisSerializer(objectMapper());
 
-        RedisCacheConfiguration config = RedisCacheConfiguration.defaultCacheConfig()
-                .entryTtl(Duration.ofMinutes(5))
-                .serializeKeysWith(
-                        RedisSerializationContext.SerializationPair.fromSerializer(new StringRedisSerializer()))
-                .serializeValuesWith(RedisSerializationContext.SerializationPair.fromSerializer(serializer))
-                .disableCachingNullValues();
+                RedisCacheConfiguration config = RedisCacheConfiguration.defaultCacheConfig()
+                                .entryTtl(Duration.ofMinutes(5))
+                                .serializeKeysWith(
+                                                RedisSerializationContext.SerializationPair
+                                                                .fromSerializer(new StringRedisSerializer()))
+                                .serializeValuesWith(
+                                                RedisSerializationContext.SerializationPair.fromSerializer(serializer))
+                                .disableCachingNullValues();
 
-        return RedisCacheManager.builder(connectionFactory)
-                .cacheDefaults(config)
-                .withCacheConfiguration("shipment-current-state",
-                        config.entryTtl(Duration.ofMinutes(5)))
-                .build();
-    }
+                return RedisCacheManager.builder(connectionFactory)
+                                .cacheDefaults(config)
+                                .withCacheConfiguration("shipment-current-state",
+                                                config.entryTtl(Duration.ofMinutes(5)))
+                                .build();
+        }
 
-    private com.fasterxml.jackson.databind.ObjectMapper objectMapper() {
-        var mapper = new com.fasterxml.jackson.databind.ObjectMapper();
-        mapper.registerModule(new com.fasterxml.jackson.datatype.jsr310.JavaTimeModule());
-        mapper.disable(com.fasterxml.jackson.databind.SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
-        mapper.activateDefaultTyping(
-                mapper.getPolymorphicTypeValidator(),
-                com.fasterxml.jackson.databind.ObjectMapper.DefaultTyping.NON_FINAL,
-                com.fasterxml.jackson.annotation.JsonTypeInfo.As.PROPERTY);
-        return mapper;
-    }
+        private com.fasterxml.jackson.databind.ObjectMapper objectMapper() {
+                var mapper = new com.fasterxml.jackson.databind.ObjectMapper();
+                mapper.registerModule(new com.fasterxml.jackson.datatype.jsr310.JavaTimeModule());
+                mapper.disable(com.fasterxml.jackson.databind.SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
+                mapper.activateDefaultTyping(
+                                mapper.getPolymorphicTypeValidator(),
+                                com.fasterxml.jackson.databind.ObjectMapper.DefaultTyping.EVERYTHING,
+                                com.fasterxml.jackson.annotation.JsonTypeInfo.As.PROPERTY);
+                return mapper;
+        }
 }
