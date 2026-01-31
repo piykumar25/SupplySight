@@ -12,8 +12,16 @@
 #    cd e:\SupplySight
 #    mvn clean install -DskipTests
 #
-# STARTUP ORDER:
-# ==============
+# STARTUP OPTIONS:
+# ================
+#
+# 1. Interactive Mode (Default - Opens multiple terminals):
+#    .\start-all.ps1
+#
+# 2. Detached Mode (Background - Recommended):
+#    .\start-all.ps1 -Detached
+#
+# STARTUP ORDER (Manual):
 # Open a new PowerShell terminal for each service:
 #
 # Terminal 1 - Identity Service (Required for login):

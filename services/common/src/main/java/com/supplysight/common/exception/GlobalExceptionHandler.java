@@ -32,7 +32,7 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(SupplySightException.class)
     public ResponseEntity<ApiResponse<Void>> handleSupplySightException(SupplySightException ex) {
         log.warn("Application exception: {} - {}", ex.getErrorCode(), ex.getMessage());
-        
+
         ErrorDetails error = new ErrorDetails(ex.getErrorCode(), ex.getMessage(), null);
         return ResponseEntity
                 .status(ex.getHttpStatus())
@@ -42,7 +42,7 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(ValidationException.class)
     public ResponseEntity<ApiResponse<Void>> handleValidationException(ValidationException ex) {
         log.warn("Validation exception: {}", ex.getMessage());
-        
+
         ErrorDetails error = new ErrorDetails(ex.getErrorCode(), ex.getMessage(), ex.getFieldErrors());
         return ResponseEntity
                 .status(HttpStatus.BAD_REQUEST)
@@ -55,11 +55,10 @@ public class GlobalExceptionHandler {
                 .collect(Collectors.toMap(
                         FieldError::getField,
                         error -> error.getDefaultMessage() != null ? error.getDefaultMessage() : "Invalid value",
-                        (existing, replacement) -> existing
-                ));
-        
+                        (existing, replacement) -> existing));
+
         log.warn("Validation failed: {}", fieldErrors);
-        
+
         ErrorDetails error = new ErrorDetails("VALIDATION_FAILED", "Request validation failed", fieldErrors);
         return ResponseEntity
                 .status(HttpStatus.BAD_REQUEST)
@@ -73,9 +72,9 @@ public class GlobalExceptionHandler {
             String field = violation.getPropertyPath().toString();
             fieldErrors.put(field, violation.getMessage());
         });
-        
+
         log.warn("Constraint violation: {}", fieldErrors);
-        
+
         ErrorDetails error = new ErrorDetails("VALIDATION_FAILED", "Constraint validation failed", fieldErrors);
         return ResponseEntity
                 .status(HttpStatus.BAD_REQUEST)
@@ -85,17 +84,18 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(HttpMessageNotReadableException.class)
     public ResponseEntity<ApiResponse<Void>> handleHttpMessageNotReadable(HttpMessageNotReadableException ex) {
         log.warn("Message not readable: {}", ex.getMessage());
-        
+
         return ResponseEntity
                 .status(HttpStatus.BAD_REQUEST)
-                .body(ApiResponse.error("INVALID_REQUEST_BODY", "Invalid request body format", MDC.get("correlationId")));
+                .body(ApiResponse.error("INVALID_REQUEST_BODY", "Invalid request body format",
+                        MDC.get("correlationId")));
     }
 
     @ExceptionHandler(MethodArgumentTypeMismatchException.class)
     public ResponseEntity<ApiResponse<Void>> handleTypeMismatch(MethodArgumentTypeMismatchException ex) {
         String message = String.format("Invalid value '%s' for parameter '%s'", ex.getValue(), ex.getName());
         log.warn("Type mismatch: {}", message);
-        
+
         return ResponseEntity
                 .status(HttpStatus.BAD_REQUEST)
                 .body(ApiResponse.error("INVALID_PARAMETER", message, MDC.get("correlationId")));
@@ -104,7 +104,7 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(AuthenticationException.class)
     public ResponseEntity<ApiResponse<Void>> handleAuthenticationException(AuthenticationException ex) {
         log.warn("Authentication failed: {}", ex.getMessage());
-        
+
         return ResponseEntity
                 .status(HttpStatus.UNAUTHORIZED)
                 .body(ApiResponse.error("UNAUTHORIZED", "Authentication required", MDC.get("correlationId")));
@@ -113,16 +113,25 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(AccessDeniedException.class)
     public ResponseEntity<ApiResponse<Void>> handleAccessDenied(AccessDeniedException ex) {
         log.warn("Access denied: {}", ex.getMessage());
-        
+
         return ResponseEntity
                 .status(HttpStatus.FORBIDDEN)
                 .body(ApiResponse.error("FORBIDDEN", "Access denied", MDC.get("correlationId")));
     }
 
+    @ExceptionHandler(SecurityException.class)
+    public ResponseEntity<ApiResponse<Void>> handleSecurityException(SecurityException ex) {
+        log.warn("Security exception: {}", ex.getMessage());
+
+        return ResponseEntity
+                .status(HttpStatus.FORBIDDEN)
+                .body(ApiResponse.error("SECURITY_ERROR", ex.getMessage(), MDC.get("correlationId")));
+    }
+
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ApiResponse<Void>> handleGenericException(Exception ex) {
         log.error("Unexpected error occurred", ex);
-        
+
         return ResponseEntity
                 .status(HttpStatus.INTERNAL_SERVER_ERROR)
                 .body(ApiResponse.error("INTERNAL_ERROR", "An unexpected error occurred", MDC.get("correlationId")));

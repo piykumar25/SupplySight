@@ -6,7 +6,15 @@ export const visibilityClient = {
     /**
      * Get a list of shipments with optional filtering
      */
-    getShipments: async (params?: { page?: number; size?: number; status?: string }) => {
+    getShipments: async (params?: {
+        page?: number;
+        size?: number;
+        status?: string;
+        fromDate?: string;
+        toDate?: string;
+        sortBy?: string;
+        sortDir?: 'asc' | 'desc';
+    }) => {
         const response = await visibilityApi.get<ApiResult<PaginatedResponse<Shipment>>>(
             '/shipments',
             { params }

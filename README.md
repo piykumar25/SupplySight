@@ -80,43 +80,31 @@ Wait for all services to be healthy (check with `docker-compose ps`).
 mvn clean install -DskipTests
 ```
 
-### 3. Start Services (in separate terminals)
+### 3. Start Services
 
-**Terminal 1 - Identity Service:**
-```bash
-cd services/identity-service
-mvn spring-boot:run
+**Option A: One-Click Start (Recommended - Background)**
+Run the entire stack in the background without opening multiple terminals.
+
+```powershell
+cd tools
+.\start-all.ps1 -Detached
 ```
 
-**Terminal 2 - Event Ingestion Service:**
-```bash
-cd services/event-ingestion-service
-mvn spring-boot:run
+- **Logs**: Output is saved to `tools/logs/`.
+- **Status**: Run `.\status.ps1` to check services.
+- **Stop**: Run `.\stop-all.ps1` to stop everything.
+
+**Option B: Interactive Mode**
+Open separate terminal windows for each service to see logs in real-time.
+
+```powershell
+cd tools
+.\start-all.ps1
 ```
 
-**Terminal 3 - Visibility Projection Service:**
-```bash
-cd services/visibility-projection-service
-mvn spring-boot:run
-```
+**Option C: Manual Start (Development)**
+See [docs/run-locally.md](docs/run-locally.md) for detailed manual execution steps.
 
-**Terminal 4 - Prediction Engine Service:**
-```bash
-cd services/prediction-engine-service
-mvn spring-boot:run
-```
-
-**Terminal 5 - Audit Service:**
-```bash
-cd services/audit-service
-mvn spring-boot:run
-```
-
-**Terminal 6 - API Gateway:**
-```bash
-cd services/api-gateway
-mvn spring-boot:run
-```
 
 ### 4. Seed Demo Data
 

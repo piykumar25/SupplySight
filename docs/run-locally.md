@@ -18,7 +18,7 @@ Open PowerShell in the `tools` directory and run:
 
 ```powershell
 cd tools
-.\start-all-background.ps1
+.\start-all.ps1 -Detached
 ```
 
 This script will:
@@ -32,11 +32,23 @@ This script will:
 - **Frontend**: [http://localhost:5173](http://localhost:5173)
 - **Login**: `admin@demo.com` / `admin123`
 
-### 3. Stop Everything
+### 3. Check Service Status
+
+```powershell
+.\status.ps1
+```
+
+Shows which services are running and their ports.
+
+### 4. Stop Everything
 
 ```powershell
 .\stop-all.ps1
 ```
+
+**Options:**
+- `.\stop-all.ps1` - Stop all services AND Docker infrastructure
+- `.\stop-all.ps1 -KeepInfra` - Stop services but keep Docker running (faster restart)
 
 ---
 

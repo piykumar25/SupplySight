@@ -7,23 +7,47 @@ export interface Location {
     hubCode?: string;
 }
 
+/**
+ * Shipment summary for list views (matches ShipmentSummary from backend)
+ */
 export interface Shipment {
     shipmentId: string;
-    trackingNumber: string;
-    tenantId: string;
+    trackingNumber?: string;
+    tenantId?: string;
     status: ShipmentStatus;
-    origin: Location;
-    destination: Location;
-    expectedDeliveryDate: string;
+    origin?: Location;
+    destination?: Location;
+    expectedDeliveryDate?: string;
     actualDeliveryDate?: string;
-    cargoDescription: string;
-    weight: number;
-    weightUnit: string;
+    cargoDescription?: string;
+    weight?: number;
+    weightUnit?: string;
     lastEventTime?: string;
+    lastEventType?: string;
     lastLocation?: Location;
     eta?: string;
     delayProbability?: number;
-    updatedAt: string;
+    updatedAt?: string;
+}
+
+/**
+ * Full shipment detail (matches CurrentStateResponse from backend)
+ */
+export interface ShipmentDetail {
+    shipmentId: string;
+    tenantId: string;
+    status: string;
+    lastEventId?: string;
+    lastEventTime?: string;
+    lastEventType?: string;
+    lastLocation?: Location;
+    origin?: Location;
+    destination?: Location;
+    eta?: string;
+    delayProbability?: number;
+    eventCount?: number;
+    createdAt?: string;
+    updatedAt?: string;
 }
 
 export interface ShipmentEvent {
@@ -53,3 +77,4 @@ export interface PredictionResult {
     };
     updatedAt: string;
 }
+
