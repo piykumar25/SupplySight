@@ -25,8 +25,8 @@ $stoppedCount = 0
 # 1. Close PowerShell terminal windows spawned by start-all.ps1
 Write-Host "1. Closing SupplySight Terminal Windows..." -ForegroundColor Cyan
 
-$supplySightWindows = Get-Process powershell -ErrorAction SilentlyContinue | 
-    Where-Object { $_.MainWindowTitle -like "SupplySight -*" }
+$supplySightWindows = Get-Process -Name powershell, pwsh -ErrorAction SilentlyContinue | 
+Where-Object { $_.MainWindowTitle -like "SupplySight -*" }
 
 if ($supplySightWindows) {
     foreach ($window in $supplySightWindows) {
@@ -34,7 +34,8 @@ if ($supplySightWindows) {
         Stop-Process -Id $window.Id -Force -ErrorAction SilentlyContinue
     }
     Write-Host "   Closed $($supplySightWindows.Count) terminal window(s)." -ForegroundColor Green
-} else {
+}
+else {
     Write-Host "   No SupplySight terminal windows found." -ForegroundColor Gray
 }
 
@@ -58,7 +59,8 @@ foreach ($service in @("Identity Service", "Tracking Service", "Visibility Servi
             Write-Host "   $service stopped." -ForegroundColor Green
             $stoppedCount++
         }
-    } else {
+    }
+    else {
         Write-Host "   $service not running (port $port)." -ForegroundColor DarkGray
     }
 }
@@ -80,7 +82,8 @@ if ($frontendConnection) {
         Write-Host "   Frontend stopped." -ForegroundColor Green
         $stoppedCount++
     }
-} else {
+}
+else {
     Write-Host "   Frontend not running (port $frontendPort)." -ForegroundColor DarkGray
 }
 
@@ -88,7 +91,8 @@ if ($frontendConnection) {
 Write-Host ""
 if ($KeepInfra) {
     Write-Host "4. Keeping Infrastructure Running (-KeepInfra flag set)" -ForegroundColor Yellow
-} else {
+}
+else {
     Write-Host "4. Stopping Infrastructure (Docker)..." -ForegroundColor Cyan
     
     $infraPath = Join-Path $PSScriptRoot "..\infra\docker-compose.yml"
@@ -113,7 +117,8 @@ Write-Host ""
 Write-Host "========================================" -ForegroundColor Green
 if ($stoppedCount -gt 0) {
     Write-Host "  Stopped $stoppedCount service(s) successfully!" -ForegroundColor Green
-} else {
+}
+else {
     Write-Host "  No running services were found." -ForegroundColor Yellow
 }
 if ($KeepInfra) {
