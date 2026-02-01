@@ -5,4 +5,6 @@ export { identityApi, trackingApi, visibilityApi, predictionApi, apiRequest, reg
 export * from './auth.api';
 export * from './visibility.api';
 export * from './prediction.api';
+export * from './alerts.api';
 export * from './axios';
+

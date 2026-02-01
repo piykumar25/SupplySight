@@ -17,6 +17,7 @@ import {
 import { useAuth } from '@/store';
 import { ROUTES } from '@/lib/constants';
 import type { UserRole } from '@/types';
+import { NotificationBell, AlertToastContainer } from '@/features/alerts';
 
 /**
  * Navigation item configuration
@@ -248,6 +249,11 @@ export function AppShell() {
 
                     {/* Right side actions */}
                     <div className="flex items-center gap-4">
+                        {/* Notification Bell (OPS_USER and ADMIN only) */}
+                        {hasAnyRole(['ADMIN', 'OPS_USER']) && (
+                            <NotificationBell />
+                        )}
+
                         {/* Role badge (mobile) */}
                         <span className={`lg:hidden text-xs px-2 py-0.5 rounded border ${roleBadgeColors[primaryRole]}`}>
                             {primaryRole.replace('_', ' ')}
@@ -273,6 +279,9 @@ export function AppShell() {
                     <Outlet />
                 </main>
             </div>
+
+            {/* Toast Notifications */}
+            <AlertToastContainer />
         </div>
     );
 }

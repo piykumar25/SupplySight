@@ -103,7 +103,8 @@ SupplySight is a production-grade, multi-tenant SaaS platform for Supply Chain V
   - ETA computation
   - Delay probability analysis
   - Anomaly detection
-  - Alert generation for high-risk shipments
+  - Alert generation and management
+  - Real-time SSE notification streaming
   - ML-ready feature extraction
 
 ### 7. Audit Service
@@ -169,6 +170,7 @@ SupplySight is a production-grade, multi-tenant SaaS platform for Supply Chain V
 
 ### Prediction Schema
 - `shipment_predictions` - Prediction results
+- `alerts` - Generated alerts and resolution status
 
 ### Audit Schema
 - `audit_logs` - Append-only audit trail

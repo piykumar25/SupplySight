@@ -2,6 +2,7 @@ package com.supplysight.prediction.repository;
 
 import com.supplysight.prediction.entity.Alert;
 import com.supplysight.prediction.entity.Alert.AlertType;
+import com.supplysight.prediction.entity.Alert.Severity;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -18,40 +19,72 @@ import java.util.UUID;
 @Repository
 public interface AlertRepository extends JpaRepository<Alert, UUID> {
 
-    /**
-     * Find alerts for a shipment.
-     */
-    @Query("SELECT a FROM Alert a WHERE a.tenantId = :tenantId AND a.shipmentId = :shipmentId ORDER BY a.createdAt DESC")
-    List<Alert> findByTenantIdAndShipmentId(
-            @Param("tenantId") UUID tenantId,
-            @Param("shipmentId") UUID shipmentId
-    );
+        // ==================== BASIC QUERIES ====================
 
-    /**
-     * Find unacknowledged alerts for a tenant.
-     */
-    @Query("SELECT a FROM Alert a WHERE a.tenantId = :tenantId AND a.acknowledged = false ORDER BY a.createdAt DESC")
-    Page<Alert> findUnacknowledgedByTenantId(@Param("tenantId") UUID tenantId, Pageable pageable);
+        /**
+         * Find all alerts for a tenant with pagination.
+         */
+        Page<Alert> findByTenantId(UUID tenantId, Pageable pageable);
 
-    /**
-     * Find alerts by type.
-     */
-    @Query("SELECT a FROM Alert a WHERE a.tenantId = :tenantId AND a.alertType = :alertType ORDER BY a.createdAt DESC")
-    Page<Alert> findByTenantIdAndAlertType(
-            @Param("tenantId") UUID tenantId,
-            @Param("alertType") AlertType alertType,
-            Pageable pageable
-    );
+        /**
+         * Find alerts for a shipment.
+         */
+        List<Alert> findByTenantIdAndShipmentIdOrderByCreatedAtDesc(UUID tenantId, UUID shipmentId);
 
-    /**
-     * Find all alerts for tenant with pagination.
-     */
-    @Query("SELECT a FROM Alert a WHERE a.tenantId = :tenantId ORDER BY a.createdAt DESC")
-    Page<Alert> findByTenantId(@Param("tenantId") UUID tenantId, Pageable pageable);
+        // ==================== FILTER QUERIES ====================
 
-    /**
-     * Count unacknowledged alerts.
-     */
-    @Query("SELECT COUNT(a) FROM Alert a WHERE a.tenantId = :tenantId AND a.acknowledged = false")
-    long countUnacknowledgedByTenantId(@Param("tenantId") UUID tenantId);
+        /**
+         * Find unacknowledged alerts for a tenant.
+         */
+        Page<Alert> findByTenantIdAndAcknowledgedFalse(UUID tenantId, Pageable pageable);
+
+        /**
+         * Find unresolved alerts for a tenant.
+         */
+        Page<Alert> findByTenantIdAndResolvedFalse(UUID tenantId, Pageable pageable);
+
+        /**
+         * Find alerts by severity.
+         */
+        Page<Alert> findByTenantIdAndSeverity(UUID tenantId, Severity severity, Pageable pageable);
+
+        /**
+         * Find alerts by type.
+         */
+        Page<Alert> findByTenantIdAndAlertType(UUID tenantId, AlertType alertType, Pageable pageable);
+
+        // ==================== COUNT QUERIES ====================
+
+        /**
+         * Count all alerts for a tenant.
+         */
+        long countByTenantId(UUID tenantId);
+
+        /**
+         * Count unacknowledged alerts.
+         */
+        long countByTenantIdAndAcknowledgedFalse(UUID tenantId);
+
+        /**
+         * Count unresolved alerts.
+         */
+        long countByTenantIdAndResolvedFalse(UUID tenantId);
+
+        // ==================== CUSTOM QUERIES ====================
+
+        /**
+         * Find recent alerts (for notification bell).
+         */
+        @Query("SELECT a FROM Alert a WHERE a.tenantId = :tenantId ORDER BY a.createdAt DESC")
+        List<Alert> findRecentByTenantId(@Param("tenantId") UUID tenantId, Pageable pageable);
+
+        /**
+         * Find critical unacknowledged alerts (for toast notifications).
+         */
+        @Query("SELECT a FROM Alert a WHERE a.tenantId = :tenantId " +
+                        "AND a.acknowledged = false " +
+                        "AND (a.severity = 'CRITICAL' OR a.alertType = 'DELAY_RISK_HIGH' OR a.alertType = 'ANOMALY_DETECTED') "
+                        +
+                        "ORDER BY a.createdAt DESC")
+        List<Alert> findCriticalUnacknowledgedByTenantId(@Param("tenantId") UUID tenantId, Pageable pageable);
 }

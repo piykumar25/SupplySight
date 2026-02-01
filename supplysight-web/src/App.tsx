@@ -12,7 +12,7 @@ import { ProtectedRoute, RoleGuard } from '@/routes';
 import { LoginPage } from '@/features/auth';
 import { DashboardPage } from '@/features/dashboard';
 import { ShipmentsPage, ShipmentDetailPage } from '@/features/shipments';
-import { AlertsPage } from '@/features/alerts';
+import { AlertsPage, AlertsErrorBoundary } from '@/features/alerts';
 import { SettingsPage } from '@/features/settings';
 import { UnauthorizedPage } from '@/features/common';
 
@@ -79,7 +79,14 @@ function App() {
 
                                 {/* Alerts - OPS_USER and ADMIN only */}
                                 <Route element={<RoleGuard allowedRoles={['ADMIN', 'OPS_USER']} />}>
-                                    <Route path={ROUTES.ALERTS} element={<AlertsPage />} />
+                                    <Route
+                                        path={ROUTES.ALERTS}
+                                        element={
+                                            <AlertsErrorBoundary>
+                                                <AlertsPage />
+                                            </AlertsErrorBoundary>
+                                        }
+                                    />
                                 </Route>
 
                                 {/* Settings - ADMIN only */}

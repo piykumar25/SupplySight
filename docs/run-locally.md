@@ -25,7 +25,7 @@ This script will:
 1.  Start Docker Infrastructure (Postgres, Kafka, Redis) if not running.
 2.  Build and Start all Backpack Services (Identity, Tracking, Visibility, Prediction).
 3.  Start the Frontend Application.
-4.  **Automatically Seed** demo data (Admin user, dummy shipments).
+4.  **Automatically Validates & Seeds** demo data (Admin user, shipments, alerts).
 
 ### 2. Access the Application
 
@@ -99,6 +99,7 @@ npm run dev
 Data is seeded automatically on startup.
 - **Identity Service**: Creates `demo-tenant` and users (`admin`, `ops`, `viewer`).
 - **Visibility Service**: Creates 5 dummy shipments if none exist.
+- **Prediction Service**: Seeds sample alerts.
 
 **Manual Reset:**
 If you need to reset the data, you can use the SQL CLI or delete the Docker volumes.

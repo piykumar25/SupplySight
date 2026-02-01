@@ -56,6 +56,18 @@ public class Alert {
     @Column(name = "acknowledged_by")
     private UUID acknowledgedBy;
 
+    @Column(name = "resolved", nullable = false)
+    private boolean resolved = false;
+
+    @Column(name = "resolved_at")
+    private Instant resolvedAt;
+
+    @Column(name = "resolved_by")
+    private UUID resolvedBy;
+
+    @Column(name = "resolution_comment", columnDefinition = "TEXT")
+    private String resolutionComment;
+
     @Column(name = "created_at", nullable = false, updatable = false)
     private Instant createdAt;
 
@@ -78,6 +90,21 @@ public class Alert {
         this.acknowledged = true;
         this.acknowledgedAt = Instant.now();
         this.acknowledgedBy = userId;
+    }
+
+    public void resolve(UUID userId) {
+        this.resolved = true;
+        this.resolvedAt = Instant.now();
+        this.resolvedBy = userId;
+        // Auto-acknowledge if not already acknowledged
+        if (!this.acknowledged) {
+            acknowledge(userId);
+        }
+    }
+
+    public void resolveWithComment(UUID userId, String comment) {
+        resolve(userId);
+        this.resolutionComment = comment;
     }
 
     // Getters and Setters
@@ -183,6 +210,38 @@ public class Alert {
 
     public void setCreatedAt(Instant createdAt) {
         this.createdAt = createdAt;
+    }
+
+    public boolean isResolved() {
+        return resolved;
+    }
+
+    public void setResolved(boolean resolved) {
+        this.resolved = resolved;
+    }
+
+    public Instant getResolvedAt() {
+        return resolvedAt;
+    }
+
+    public void setResolvedAt(Instant resolvedAt) {
+        this.resolvedAt = resolvedAt;
+    }
+
+    public UUID getResolvedBy() {
+        return resolvedBy;
+    }
+
+    public void setResolvedBy(UUID resolvedBy) {
+        this.resolvedBy = resolvedBy;
+    }
+
+    public String getResolutionComment() {
+        return resolutionComment;
+    }
+
+    public void setResolutionComment(String resolutionComment) {
+        this.resolutionComment = resolutionComment;
     }
 
     public enum AlertType {

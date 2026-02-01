@@ -7,7 +7,8 @@ Write-Host ""
 Write-Host "========================================" -ForegroundColor Cyan
 if ($Detached) {
     Write-Host " Starting SupplySight Stack (Background)" -ForegroundColor Cyan
-} else {
+}
+else {
     Write-Host "    Starting SupplySight Stack         " -ForegroundColor Cyan
 }
 Write-Host "========================================" -ForegroundColor Cyan
@@ -36,9 +37,10 @@ if (-not $dockerStatus) {
     Write-Host "   Starting Docker containers..." -ForegroundColor Gray
     
     if ($Detached) {
-         Start-Process powershell -ArgumentList "-Command", "cd ../infra; docker-compose up -d" -Wait
-    } else {
-         Start-Process powershell -ArgumentList "-NoExit", "-Command", "cd ../infra; docker-compose up -d; Write-Host 'Infrastructure Started!' -ForegroundColor Green; Read-Host 'Press Enter to close...'"
+        Start-Process powershell -ArgumentList "-Command", "cd ../infra; docker-compose up -d" -Wait
+    }
+    else {
+        Start-Process powershell -ArgumentList "-NoExit", "-Command", "cd ../infra; docker-compose up -d; Write-Host 'Infrastructure Started!' -ForegroundColor Green; Read-Host 'Press Enter to close...'"
     }
     
     Write-Host "   Waiting 30s for databases to initialize..." -ForegroundColor Gray
@@ -183,6 +185,11 @@ else {
         $title = "SupplySight - Frontend (5173)"
         Start-Process powershell -ArgumentList "-NoExit", "-Command", "`$Host.UI.RawUI.WindowTitle = '$title'; cd '$PSScriptRoot'; .\start-frontend.ps1"
     }
+
+    # 4. Verify Data (Async)
+    Write-Host ""
+    Write-Host "4. Verifying Data..." -ForegroundColor Yellow
+    Start-Process powershell -ArgumentList "-Command", "cd '$PSScriptRoot'; .\seed-data.ps1"
 
     # Summary
     Write-Host ""

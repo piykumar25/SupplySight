@@ -440,6 +440,67 @@ curl -X GET http://localhost:8085/api/v1/predictions/{shipmentId} \
 
 ---
 
+### Alert Management (Prediction Service)
+
+#### List Alerts
+
+**Request:**
+```bash
+curl -X GET "http://localhost:8085/api/v1/alerts?page=0&size=20&sortBy=createdAt&sortDir=desc" \
+  -H "Authorization: Bearer <ACCESS_TOKEN>"
+```
+
+#### Get Alert Details
+
+**Request:**
+```bash
+curl -X GET http://localhost:8085/api/v1/alerts/{alertId} \
+  -H "Authorization: Bearer <ACCESS_TOKEN>"
+```
+
+#### Acknowledge Alert
+
+**Request:**
+```bash
+curl -X POST http://localhost:8085/api/v1/alerts/{alertId}/acknowledge \
+  -H "Authorization: Bearer <ACCESS_TOKEN>"
+```
+
+#### Resolve Alert
+
+**Request:**
+```bash
+curl -X POST http://localhost:8085/api/v1/alerts/{alertId}/resolve \
+  -H "Authorization: Bearer <ACCESS_TOKEN>" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "comment": "Issue resolved manually"
+  }'
+```
+
+#### Bulk Acknowledge
+
+**Request:**
+```bash
+curl -X POST http://localhost:8085/api/v1/alerts/bulk/acknowledge \
+  -H "Authorization: Bearer <ACCESS_TOKEN>" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "alertIds": ["uuid1", "uuid2"]
+  }'
+```
+
+#### Alert Stream (SSE)
+
+**Request:**
+```bash
+curl -N -H "Accept: text/event-stream" \
+  http://localhost:8085/api/v1/alerts/stream \
+  -H "Authorization: Bearer <ACCESS_TOKEN>"
+```
+
+---
+
 ## Error Responses
 
 All APIs use a consistent error response format:
