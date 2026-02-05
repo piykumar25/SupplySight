@@ -415,6 +415,15 @@ Key performance targets:
 
 ## Documentation
 
+### Technical References
+- **[System Design Document](DESIGN.md)** - Comprehensive architecture documentation including:
+  - 👵 "Grandmother" non-technical summary
+  - 🏗️ C4 Architecture Diagrams (System Context, Container, Sequence)
+  - 📊 Database ERD (Entity Relationship Diagram)
+  - 📝 Architectural Decision Records (ADRs)
+  - 🔧 Operational Excellence & Observability
+
+### Additional Docs
 - [Architecture Overview](docs/architecture.md)
 - [API Specification](docs/api-spec.md)
 - [Local Development Guide](docs/run-locally.md)
