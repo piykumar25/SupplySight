@@ -1,0 +1,98 @@
+# Prometheus Recording Rules for Cost & Capacity Metrics
+# These track resource usage for capacity planning and cost awareness
+
+groups:
+  # Events Ingested
+  - name: cost-events
+    interval: 1m
+    rules:
+      # Total events ingested per tenant (daily counter)
+      - record: cost:events_ingested:total_1d
+        expr: |
+          sum(increase(kafka_producer_record_send_total{job="event-ingestion-service"}[24h])) by (tenant_id)
+
+      # Events per tenant per hour (for billing)
+      - record: cost:events_ingested:total_1h
+        expr: |
+          sum(increase(kafka_producer_record_send_total{job="event-ingestion-service"}[1h])) by (tenant_id)
+
+      # Average events per second per tenant
+      - record: cost:events_rate:avg_5m
+        expr: |
+          sum(rate(kafka_producer_record_send_total{job="event-ingestion-service"}[5m])) by (tenant_id)
+
+  # Storage Growth
+  - name: cost-storage
+    interval: 5m
+    rules:
+      # Database storage per schema (approximate via row counts)
+      - record: cost:db_rows:total
+        expr: |
+          pg_stat_user_tables_n_live_tup
+
+      # Storage growth rate (rows per hour)
+      - record: cost:db_rows:growth_rate_1h
+        expr: |
+          rate(pg_stat_user_tables_n_live_tup[1h]) * 3600
+
+  # SSE Connection Duration
+  - name: cost-sse
+    interval: 1m
+    rules:
+      # Total SSE connection-minutes per tenant
+      - record: cost:sse_connection_minutes:total_1h
+        expr: |
+          sum(increase(sse_connection_duration_seconds_total[1h])) by (tenant_id) / 60
+
+      # Average SSE connections per tenant
+      - record: cost:sse_connections:avg_5m
+        expr: |
+          avg_over_time(sse_active_connections[5m])
+
+  # API Usage
+  - name: cost-api
+    interval: 1m
+    rules:
+      # API requests per tenant per hour
+      - record: cost:api_requests:total_1h
+        expr: |
+          sum(increase(http_server_requests_seconds_count[1h])) by (tenant_id)
+
+      # API requests by endpoint per hour
+      - record: cost:api_requests_by_endpoint:total_1h
+        expr: |
+          sum(increase(http_server_requests_seconds_count[1h])) by (tenant_id, uri)
+
+  # Capacity Metrics
+  - name: capacity
+    interval: 1m
+    rules:
+      # JVM heap usage percentage
+      - record: capacity:jvm_heap:usage_percent
+        expr: |
+          jvm_memory_used_bytes{area="heap"} / jvm_memory_max_bytes{area="heap"} * 100
+
+      # Database connection pool utilization
+      - record: capacity:db_pool:usage_percent
+        expr: |
+          hikaricp_connections_active / hikaricp_connections_max * 100
+
+      # Kafka consumer lag
+      - record: capacity:kafka_lag:max
+        expr: |
+          kafka_consumer_fetch_manager_records_lag_max
+
+      # CPU usage estimate (from JVM)
+      - record: capacity:cpu:usage_percent
+        expr: |
+          system_cpu_usage * 100
+
+      # Active shipments vs quota
+      - record: capacity:shipments:usage_percent
+        expr: |
+          tenant_quota_shipments_percent
+
+      # Events per second vs quota
+      - record: capacity:eps:usage_percent
+        expr: |
+          tenant_quota_eps_percent

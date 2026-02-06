@@ -19,10 +19,12 @@ import reactor.core.publisher.Mono;
 import javax.crypto.SecretKey;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
+import com.supplysight.gateway.config.GatewayAuthConfig;
 
 /**
  * Global filter for JWT authentication.
- * Validates JWT tokens and extracts tenant/user information for downstream services.
+ * Validates JWT tokens and extracts tenant/user information for downstream
+ * services.
  */
 @Component
 public class JwtAuthenticationFilter implements GlobalFilter, Ordered {
@@ -33,16 +35,17 @@ public class JwtAuthenticationFilter implements GlobalFilter, Ordered {
     private static final String CLAIM_USERNAME = "username";
     private static final String CLAIM_ROLES = "roles";
 
+    // ...
+
     private final SecretKey secretKey;
-    private final List<String> publicPaths;
+    private final GatewayAuthConfig authConfig;
     private final AntPathMatcher pathMatcher = new AntPathMatcher();
 
     public JwtAuthenticationFilter(
             @Value("${jwt.secret}") String secret,
-            @Value("${gateway.auth.public-paths}") List<String> publicPaths
-    ) {
+            GatewayAuthConfig authConfig) {
         this.secretKey = Keys.hmacShaKeyFor(secret.getBytes(StandardCharsets.UTF_8));
-        this.publicPaths = publicPaths;
+        this.authConfig = authConfig;
     }
 
     @Override
@@ -70,7 +73,7 @@ public class JwtAuthenticationFilter implements GlobalFilter, Ordered {
             String tenantId = claims.get(CLAIM_TENANT_ID, String.class);
             String userId = claims.getSubject();
             String username = claims.get(CLAIM_USERNAME, String.class);
-            
+
             @SuppressWarnings("unchecked")
             List<String> roles = claims.get(CLAIM_ROLES, List.class);
             String rolesString = roles != null ? String.join(",", roles) : "";
@@ -115,23 +118,21 @@ public class JwtAuthenticationFilter implements GlobalFilter, Ordered {
     }
 
     private boolean isPublicPath(String path) {
-        return publicPaths.stream()
+        return authConfig.getPublicPaths().stream()
                 .anyMatch(pattern -> pathMatcher.match(pattern, path));
     }
 
     private Mono<Void> unauthorized(ServerWebExchange exchange, String message) {
         exchange.getResponse().setStatusCode(HttpStatus.UNAUTHORIZED);
         exchange.getResponse().getHeaders().add("Content-Type", "application/json");
-        
+
         String body = String.format(
                 "{\"success\":false,\"message\":\"%s\",\"data\":null,\"timestamp\":\"%s\"}",
                 message,
-                java.time.Instant.now().toString()
-        );
-        
+                java.time.Instant.now().toString());
+
         return exchange.getResponse().writeWith(
-                Mono.just(exchange.getResponse().bufferFactory().wrap(body.getBytes()))
-        );
+                Mono.just(exchange.getResponse().bufferFactory().wrap(body.getBytes())));
     }
 
     @Override

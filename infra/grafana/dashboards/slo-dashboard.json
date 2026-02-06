@@ -1,0 +1,408 @@
+{
+    "annotations": {
+        "list": []
+    },
+    "editable": true,
+    "fiscalYearStartMonth": 0,
+    "graphTooltip": 1,
+    "id": null,
+    "links": [],
+    "liveNow": false,
+    "panels": [
+        {
+            "title": "SLO Summary",
+            "type": "row",
+            "gridPos": {
+                "h": 1,
+                "w": 24,
+                "x": 0,
+                "y": 0
+            },
+            "collapsed": false
+        },
+        {
+            "title": "Platform Availability (Target: 99.9%)",
+            "type": "gauge",
+            "gridPos": {
+                "h": 6,
+                "w": 6,
+                "x": 0,
+                "y": 1
+            },
+            "fieldConfig": {
+                "defaults": {
+                    "thresholds": {
+                        "mode": "absolute",
+                        "steps": [
+                            {
+                                "color": "red",
+                                "value": null
+                            },
+                            {
+                                "color": "yellow",
+                                "value": 99.5
+                            },
+                            {
+                                "color": "green",
+                                "value": 99.9
+                            }
+                        ]
+                    },
+                    "min": 99,
+                    "max": 100,
+                    "unit": "percent",
+                    "decimals": 3
+                }
+            },
+            "options": {
+                "showThresholdLabels": true,
+                "showThresholdMarkers": true
+            },
+            "targets": [
+                {
+                    "expr": "sli:platform_availability:ratio_1h * 100",
+                    "legendFormat": "Availability"
+                }
+            ]
+        },
+        {
+            "title": "Latency SLO (p95 < 300ms)",
+            "type": "gauge",
+            "gridPos": {
+                "h": 6,
+                "w": 6,
+                "x": 6,
+                "y": 1
+            },
+            "fieldConfig": {
+                "defaults": {
+                    "thresholds": {
+                        "mode": "absolute",
+                        "steps": [
+                            {
+                                "color": "red",
+                                "value": null
+                            },
+                            {
+                                "color": "yellow",
+                                "value": 90
+                            },
+                            {
+                                "color": "green",
+                                "value": 95
+                            }
+                        ]
+                    },
+                    "min": 80,
+                    "max": 100,
+                    "unit": "percent"
+                }
+            },
+            "targets": [
+                {
+                    "expr": "avg(sli:latency_slo:compliance_ratio_1h) * 100",
+                    "legendFormat": "Latency Compliance"
+                }
+            ]
+        },
+        {
+            "title": "Availability Error Budget (30d)",
+            "type": "gauge",
+            "gridPos": {
+                "h": 6,
+                "w": 6,
+                "x": 12,
+                "y": 1
+            },
+            "fieldConfig": {
+                "defaults": {
+                    "thresholds": {
+                        "mode": "absolute",
+                        "steps": [
+                            {
+                                "color": "red",
+                                "value": null
+                            },
+                            {
+                                "color": "yellow",
+                                "value": 25
+                            },
+                            {
+                                "color": "green",
+                                "value": 50
+                            }
+                        ]
+                    },
+                    "min": 0,
+                    "max": 100,
+                    "unit": "percent"
+                }
+            },
+            "targets": [
+                {
+                    "expr": "slo:availability:error_budget_remaining_30d * 100",
+                    "legendFormat": "Error Budget"
+                }
+            ]
+        },
+        {
+            "title": "Latency Error Budget (30d)",
+            "type": "gauge",
+            "gridPos": {
+                "h": 6,
+                "w": 6,
+                "x": 18,
+                "y": 1
+            },
+            "fieldConfig": {
+                "defaults": {
+                    "thresholds": {
+                        "mode": "absolute",
+                        "steps": [
+                            {
+                                "color": "red",
+                                "value": null
+                            },
+                            {
+                                "color": "yellow",
+                                "value": 25
+                            },
+                            {
+                                "color": "green",
+                                "value": 50
+                            }
+                        ]
+                    },
+                    "min": 0,
+                    "max": 100,
+                    "unit": "percent"
+                }
+            },
+            "targets": [
+                {
+                    "expr": "slo:latency:error_budget_remaining_30d * 100",
+                    "legendFormat": "Error Budget"
+                }
+            ]
+        },
+        {
+            "title": "Service Availability",
+            "type": "row",
+            "gridPos": {
+                "h": 1,
+                "w": 24,
+                "x": 0,
+                "y": 7
+            },
+            "collapsed": false
+        },
+        {
+            "title": "Service Availability by Job",
+            "type": "timeseries",
+            "gridPos": {
+                "h": 8,
+                "w": 12,
+                "x": 0,
+                "y": 8
+            },
+            "fieldConfig": {
+                "defaults": {
+                    "custom": {
+                        "drawStyle": "line",
+                        "lineInterpolation": "smooth",
+                        "fillOpacity": 10
+                    },
+                    "unit": "percentunit",
+                    "decimals": 3
+                }
+            },
+            "targets": [
+                {
+                    "expr": "sli:service_availability:ratio_5m",
+                    "legendFormat": "{{ job }}"
+                }
+            ]
+        },
+        {
+            "title": "Error Rate by Service",
+            "type": "timeseries",
+            "gridPos": {
+                "h": 8,
+                "w": 12,
+                "x": 12,
+                "y": 8
+            },
+            "fieldConfig": {
+                "defaults": {
+                    "custom": {
+                        "drawStyle": "line",
+                        "lineInterpolation": "smooth",
+                        "fillOpacity": 10
+                    },
+                    "unit": "percentunit"
+                }
+            },
+            "targets": [
+                {
+                    "expr": "1 - sli:service_availability:ratio_5m",
+                    "legendFormat": "{{ job }}"
+                }
+            ]
+        },
+        {
+            "title": "Latency",
+            "type": "row",
+            "gridPos": {
+                "h": 1,
+                "w": 24,
+                "x": 0,
+                "y": 16
+            },
+            "collapsed": false
+        },
+        {
+            "title": "API Latency P95 by Service",
+            "type": "timeseries",
+            "gridPos": {
+                "h": 8,
+                "w": 12,
+                "x": 0,
+                "y": 17
+            },
+            "fieldConfig": {
+                "defaults": {
+                    "custom": {
+                        "drawStyle": "line",
+                        "lineInterpolation": "smooth"
+                    },
+                    "unit": "s",
+                    "thresholds": {
+                        "mode": "absolute",
+                        "steps": [
+                            {
+                                "color": "green",
+                                "value": null
+                            },
+                            {
+                                "color": "yellow",
+                                "value": 0.2
+                            },
+                            {
+                                "color": "red",
+                                "value": 0.3
+                            }
+                        ]
+                    }
+                }
+            },
+            "targets": [
+                {
+                    "expr": "sli:api_latency:p95_5m",
+                    "legendFormat": "{{ job }}"
+                }
+            ]
+        },
+        {
+            "title": "Visibility API Latency (SLO Target: 300ms)",
+            "type": "timeseries",
+            "gridPos": {
+                "h": 8,
+                "w": 12,
+                "x": 12,
+                "y": 17
+            },
+            "fieldConfig": {
+                "defaults": {
+                    "custom": {
+                        "drawStyle": "line",
+                        "lineInterpolation": "smooth",
+                        "fillOpacity": 20
+                    },
+                    "unit": "s"
+                }
+            },
+            "targets": [
+                {
+                    "expr": "sli:visibility_api_latency:p95_5m",
+                    "legendFormat": "P95"
+                },
+                {
+                    "expr": "0.3",
+                    "legendFormat": "SLO Target (300ms)"
+                }
+            ]
+        },
+        {
+            "title": "Error Budget Burn",
+            "type": "row",
+            "gridPos": {
+                "h": 1,
+                "w": 24,
+                "x": 0,
+                "y": 25
+            },
+            "collapsed": false
+        },
+        {
+            "title": "Error Budget Burn Rate (7d)",
+            "type": "timeseries",
+            "gridPos": {
+                "h": 6,
+                "w": 24,
+                "x": 0,
+                "y": 26
+            },
+            "fieldConfig": {
+                "defaults": {
+                    "custom": {
+                        "drawStyle": "line",
+                        "lineInterpolation": "smooth",
+                        "fillOpacity": 10
+                    },
+                    "thresholds": {
+                        "mode": "absolute",
+                        "steps": [
+                            {
+                                "color": "green",
+                                "value": null
+                            },
+                            {
+                                "color": "yellow",
+                                "value": 1
+                            },
+                            {
+                                "color": "red",
+                                "value": 2
+                            }
+                        ]
+                    }
+                }
+            },
+            "targets": [
+                {
+                    "expr": "slo:availability:burn_rate_7d",
+                    "legendFormat": "Burn Rate (1x = on track)"
+                }
+            ]
+        }
+    ],
+    "refresh": "1m",
+    "schemaVersion": 38,
+    "tags": [
+        "supplysight",
+        "slo",
+        "sli"
+    ],
+    "templating": {
+        "list": []
+    },
+    "time": {
+        "from": "now-24h",
+        "to": "now"
+    },
+    "timepicker": {},
+    "timezone": "browser",
+    "title": "SLO Dashboard",
+    "uid": "slo-dashboard",
+    "version": 1
+}

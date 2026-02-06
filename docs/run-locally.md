@@ -2,6 +2,8 @@
 
 This guide explains how to run the SupplySight Supply Chain Visibility Platform locally using Docker Compose.
 
+> **See also:** [System Design Document](../DESIGN.md) for architecture diagrams and [API Specification](api-spec.md) for endpoint details.
+
 ## Prerequisites
 
 - **Docker Desktop** (with Docker Compose v2)
@@ -23,7 +25,7 @@ cd tools
 
 This script will:
 1.  Start Docker Infrastructure (Postgres, Kafka, Redis) if not running.
-2.  Build and Start all Backpack Services (Identity, Tracking, Visibility, Prediction).
+2.  Build and Start all Backend Services (API Gateway, Identity, Event Ingestion, Tracking, Visibility, Prediction, Audit).
 3.  Start the Frontend Application.
 4.  **Automatically Validates & Seeds** demo data (Admin user, shipments, alerts).
 
@@ -67,8 +69,16 @@ docker-compose up -d
 Run each service in a separate terminal:
 
 ```bash
+# API Gateway (Port 8080) - Start first
+cd services/api-gateway
+mvn spring-boot:run
+
 # Identity Service (Port 8081)
 cd services/identity-service
+mvn spring-boot:run
+
+# Event Ingestion Service (Port 8082)
+cd services/event-ingestion-service
 mvn spring-boot:run
 
 # Tracking Service (Port 8083)
@@ -81,6 +91,10 @@ mvn spring-boot:run
 
 # Prediction Service (Port 8085)
 cd services/prediction-engine-service
+mvn spring-boot:run
+
+# Audit Service (Port 8086)
+cd services/audit-service
 mvn spring-boot:run
 ```
 

@@ -2,6 +2,7 @@ package com.supplysight.gateway.filter;
 
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.security.Keys;
+import com.supplysight.gateway.config.GatewayAuthConfig;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.cloud.gateway.filter.GatewayFilterChain;
@@ -32,10 +33,12 @@ class JwtAuthenticationFilterTest {
     @BeforeEach
     void setUp() {
         List<String> publicPaths = List.of("/api/v1/login", "/api/v1/register", "/actuator/**");
-        filter = new JwtAuthenticationFilter(secret, publicPaths);
+        GatewayAuthConfig authConfig = new GatewayAuthConfig();
+        authConfig.setPublicPaths(publicPaths);
+        filter = new JwtAuthenticationFilter(secret, authConfig);
         chain = mock(GatewayFilterChain.class);
         secretKey = Keys.hmacShaKeyFor(secret.getBytes(StandardCharsets.UTF_8));
-        
+
         when(chain.filter(any())).thenReturn(Mono.empty());
     }
 

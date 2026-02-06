@@ -1,0 +1,70 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<configuration>
+    <!-- Import Spring Boot defaults -->
+    <include resource="org/springframework/boot/logging/logback/defaults.xml"/>
+    
+    <!-- Service name from Spring property -->
+    <springProperty scope="context" name="SERVICE_NAME" source="spring.application.name" defaultValue="supplysight"/>
+    
+    <!-- Environment-based profile activation -->
+    <springProfile name="default,dev,local">
+        <!-- Console appender for development -->
+        <appender name="CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
+            <encoder>
+                <pattern>%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level [%X{correlationId:-}] [%X{tenantId:-}] [%X{userId:-}] %logger{36} - %msg%n</pattern>
+            </encoder>
+        </appender>
+        
+        <root level="INFO">
+            <appender-ref ref="CONSOLE"/>
+        </root>
+    </springProfile>
+    
+    <springProfile name="prod,production,staging">
+        <!-- JSON appender for production using Logstash encoder -->
+        <appender name="JSON" class="ch.qos.logback.core.ConsoleAppender">
+            <encoder class="net.logstash.logback.encoder.LogstashEncoder">
+                <!-- Include MDC properties -->
+                <includeMdc>true</includeMdc>
+                <includeMdcKeyName>correlationId</includeMdcKeyName>
+                <includeMdcKeyName>tenantId</includeMdcKeyName>
+                <includeMdcKeyName>userId</includeMdcKeyName>
+                <includeMdcKeyName>requestPath</includeMdcKeyName>
+                <includeMdcKeyName>requestMethod</includeMdcKeyName>
+                <includeMdcKeyName>requestSize</includeMdcKeyName>
+                <includeMdcKeyName>responseSize</includeMdcKeyName>
+                <includeMdcKeyName>latencyMs</includeMdcKeyName>
+                <includeMdcKeyName>httpStatus</includeMdcKeyName>
+                
+                <!-- Custom fields -->
+                <customFields>{"service":"${SERVICE_NAME}","version":"1.0.0"}</customFields>
+                
+                <!-- Include caller data for stack traces -->
+                <includeCallerData>true</includeCallerData>
+                
+                <!-- Timestamp format -->
+                <timestampPattern>yyyy-MM-dd'T'HH:mm:ss.SSSZ</timestampPattern>
+                
+                <!-- Stack trace configuration -->
+                <throwableConverter class="net.logstash.logback.stacktrace.ShortenedThrowableConverter">
+                    <maxDepthPerThrowable>30</maxDepthPerThrowable>
+                    <maxLength>2048</maxLength>
+                    <shortenedClassNameLength>20</shortenedClassNameLength>
+                    <rootCauseFirst>true</rootCauseFirst>
+                </throwableConverter>
+            </encoder>
+        </appender>
+        
+        <root level="INFO">
+            <appender-ref ref="JSON"/>
+        </root>
+    </springProfile>
+    
+    <!-- Per-package log levels -->
+    <logger name="com.supplysight" level="DEBUG"/>
+    <logger name="org.springframework.web" level="INFO"/>
+    <logger name="org.springframework.security" level="INFO"/>
+    <logger name="org.apache.kafka" level="WARN"/>
+    <logger name="org.hibernate.SQL" level="WARN"/>
+    <logger name="io.micrometer" level="INFO"/>
+</configuration>

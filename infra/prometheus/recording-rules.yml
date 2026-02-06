@@ -1,0 +1,152 @@
+# Prometheus Recording Rules for SupplySight SLIs
+# These pre-compute SLI metrics for efficient SLO dashboards
+
+groups:
+  # API Availability SLIs
+  - name: sli-availability
+    interval: 1m
+    rules:
+      # Success rate (non-5xx responses)
+      - record: sli:api_availability:success_rate_1h
+        expr: |
+          sum(rate(http_server_requests_seconds_count{status!~"5.."}[1h])) by (job)
+          /
+          sum(rate(http_server_requests_seconds_count[1h])) by (job)
+        labels:
+          sli: availability
+
+      # Per-service availability
+      - record: sli:service_availability:ratio_5m
+        expr: |
+          sum(rate(http_server_requests_seconds_count{status!~"5.."}[5m])) by (job)
+          /
+          sum(rate(http_server_requests_seconds_count[5m])) by (job)
+
+      # Overall platform availability
+      - record: sli:platform_availability:ratio_1h
+        expr: |
+          sum(rate(http_server_requests_seconds_count{status!~"5.."}[1h]))
+          /
+          sum(rate(http_server_requests_seconds_count[1h]))
+
+  # Latency SLIs
+  - name: sli-latency
+    interval: 1m
+    rules:
+      # P50 latency per service
+      - record: sli:api_latency:p50_5m
+        expr: |
+          histogram_quantile(0.50,
+            sum(rate(http_server_requests_seconds_bucket[5m])) by (job, le)
+          )
+
+      # P95 latency per service
+      - record: sli:api_latency:p95_5m
+        expr: |
+          histogram_quantile(0.95,
+            sum(rate(http_server_requests_seconds_bucket[5m])) by (job, le)
+          )
+
+      # P99 latency per service  
+      - record: sli:api_latency:p99_5m
+        expr: |
+          histogram_quantile(0.99,
+            sum(rate(http_server_requests_seconds_bucket[5m])) by (job, le)
+          )
+
+      # Visibility API latency (key SLO target)
+      - record: sli:visibility_api_latency:p95_5m
+        expr: |
+          histogram_quantile(0.95,
+            sum(rate(http_server_requests_seconds_bucket{job="visibility-projection-service"}[5m])) by (le)
+          )
+
+      # Latency SLO compliance (p95 < 300ms)
+      - record: sli:latency_slo:compliance_ratio_1h
+        expr: |
+          sum(rate(http_server_requests_seconds_bucket{le="0.3"}[1h])) by (job)
+          /
+          sum(rate(http_server_requests_seconds_count[1h])) by (job)
+
+  # Alert Delivery SLIs
+  - name: sli-alert-delivery
+    interval: 1m
+    rules:
+      # Alert creation to SSE broadcast latency
+      - record: sli:alert_delivery:latency_seconds
+        expr: |
+          histogram_quantile(0.95,
+            sum(rate(alert_delivery_latency_seconds_bucket[5m])) by (le)
+          )
+
+      # Alert delivery success rate
+      - record: sli:alert_delivery:success_rate_5m
+        expr: |
+          sum(rate(alert_delivery_success_total[5m]))
+          /
+          (sum(rate(alert_delivery_success_total[5m])) + sum(rate(alert_delivery_failure_total[5m])))
+
+  # SSE Connection SLIs
+  - name: sli-sse
+    interval: 1m
+    rules:
+      # SSE connection success rate
+      - record: sli:sse_connection:success_rate_5m
+        expr: |
+          1 - (
+            sum(rate(sse_connection_rejected_total[5m]))
+            /
+            (sum(rate(sse_connection_rejected_total[5m])) + sum(rate(sse_active_connections[5m])) + 0.001)
+          )
+
+      # Active SSE connections
+      - record: sli:sse_connections:active
+        expr: |
+          sum(sse_active_connections) by (tenant_id)
+
+  # Error Budget Calculations
+  - name: error-budgets
+    interval: 5m
+    rules:
+      # Monthly error budget remaining (target: 99.9% = 0.1% error budget)
+      - record: slo:availability:error_budget_remaining_30d
+        expr: |
+          1 - (
+            (1 - sli:platform_availability:ratio_1h)
+            /
+            0.001
+          )
+
+      # Weekly error budget burn rate
+      - record: slo:availability:burn_rate_7d
+        expr: |
+          (1 - avg_over_time(sli:platform_availability:ratio_1h[7d]))
+          /
+          0.001
+
+      # Latency SLO error budget (target: 95% of requests < 300ms)
+      - record: slo:latency:error_budget_remaining_30d
+        expr: |
+          1 - (
+            (1 - avg_over_time(sli:latency_slo:compliance_ratio_1h[30d]))
+            /
+            0.05
+          )
+
+  # Tenant-specific SLIs
+  - name: sli-per-tenant
+    interval: 1m
+    rules:
+      # Per-tenant request success rate
+      - record: sli:tenant_success_rate:ratio_5m
+        expr: |
+          sum(rate(http_server_requests_seconds_count{status!~"5.."}[5m])) by (tenant_id)
+          /
+          sum(rate(http_server_requests_seconds_count[5m])) by (tenant_id)
+
+      # Per-tenant throttle rate
+      - record: sli:tenant_throttle_rate:ratio_5m
+        expr: |
+          sum(rate(tenant_throttled_requests_total[5m])) by (tenant_id)
+          /
+          (sum(rate(http_server_requests_seconds_count[5m])) by (tenant_id) + 0.001)

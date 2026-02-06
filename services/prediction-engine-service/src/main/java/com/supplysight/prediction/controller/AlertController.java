@@ -42,13 +42,17 @@ public class AlertController {
     private static final Logger log = LoggerFactory.getLogger(AlertController.class);
 
     private final AlertRepository alertRepository;
+    private final com.supplysight.prediction.service.SseConnectionLimitService sseConnectionLimitService;
 
     // SSE emitters by tenant
     private final Map<UUID, List<SseEmitter>> sseEmitters = new ConcurrentHashMap<>();
     private final ExecutorService sseExecutor = Executors.newCachedThreadPool();
 
-    public AlertController(AlertRepository alertRepository) {
+    public AlertController(
+            AlertRepository alertRepository,
+            com.supplysight.prediction.service.SseConnectionLimitService sseConnectionLimitService) {
         this.alertRepository = alertRepository;
+        this.sseConnectionLimitService = sseConnectionLimitService;
     }
 
     // ==================== LIST & QUERY ENDPOINTS ====================
@@ -267,8 +271,20 @@ public class AlertController {
 
     @GetMapping(value = "/stream", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
     @Operation(summary = "Alert Stream", description = "Real-time SSE stream for alert updates")
-    public SseEmitter streamAlerts() {
+    public ResponseEntity<?> streamAlerts() {
         UUID tenantId = TenantContext.getTenantId();
+
+        // Check SSE connection limit
+        if (!sseConnectionLimitService.canOpenConnection(tenantId)) {
+            log.warn("SSE connection limit exceeded for tenant {}", tenantId);
+            return ResponseEntity.status(429)
+                    .header("Retry-After", "30")
+                    .contentType(org.springframework.http.MediaType.APPLICATION_JSON)
+                    .body("{\"success\":false,\"error\":{\"code\":\"SSE_LIMIT_EXCEEDED\",\"message\":\"Maximum SSE connections reached. Please close existing connections or try again later.\"}}");
+        }
+
+        // Track connection opened
+        sseConnectionLimitService.trackConnectionOpened(tenantId);
 
         SseEmitter emitter = new SseEmitter(Long.MAX_VALUE);
 
@@ -276,11 +292,18 @@ public class AlertController {
         sseEmitters.computeIfAbsent(tenantId, k -> new CopyOnWriteArrayList<>()).add(emitter);
 
         // Handle completion and timeout
-        emitter.onCompletion(() -> removeEmitter(tenantId, emitter));
-        emitter.onTimeout(() -> removeEmitter(tenantId, emitter));
+        emitter.onCompletion(() -> {
+            removeEmitter(tenantId, emitter);
+            sseConnectionLimitService.trackConnectionClosed(tenantId);
+        });
+        emitter.onTimeout(() -> {
+            removeEmitter(tenantId, emitter);
+            sseConnectionLimitService.trackConnectionClosed(tenantId);
+        });
         emitter.onError(e -> {
             log.debug("SSE error for tenant {}: {}", tenantId, e.getMessage());
             removeEmitter(tenantId, emitter);
+            sseConnectionLimitService.trackConnectionClosed(tenantId);
         });
 
         // Send initial heartbeat
@@ -290,10 +313,11 @@ public class AlertController {
                     .data("{\"status\":\"connected\",\"timestamp\":\"" + Instant.now() + "\"}"));
         } catch (Exception e) {
             log.debug("Failed to send SSE connect: {}", e.getMessage());
+            sseConnectionLimitService.trackConnectionClosed(tenantId);
         }
 
         log.info("SSE client connected for tenant {}", tenantId);
-        return emitter;
+        return ResponseEntity.ok(emitter);
     }
 
     // ==================== HELPER METHODS ====================

@@ -19,7 +19,7 @@ CREATE TABLE IF NOT EXISTS audit.audit_logs (
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
     
     -- Partition key for time-based partitioning
-    partition_key DATE GENERATED ALWAYS AS (DATE(event_time)) STORED
+    partition_key DATE GENERATED ALWAYS AS (DATE(event_time AT TIME ZONE 'UTC')) STORED
 );
 
 -- Indexes for common queries

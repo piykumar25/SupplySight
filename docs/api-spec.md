@@ -219,7 +219,105 @@ curl -X GET "http://localhost:8081/api/v1/users?page=0&size=20" \
   -H "Authorization: Bearer <ACCESS_TOKEN>"
 ```
 
----
+### Admin APIs (ADMIN only)
+
+#### Get Tenant Quota Limits
+
+**Request:**
+```bash
+curl -X GET http://localhost:8081/admin/tenants/{tenantId}/limits \
+  -H "Authorization: Bearer <ACCESS_TOKEN>"
+```
+
+**Response (200 OK):**
+```json
+{
+  "success": true,
+  "data": {
+    "tenantId": "123e4567-e89b-12d3-a456-426614174000",
+    "maxActiveShipments": 1000,
+    "maxEventsPerSecond": 100,
+    "maxSseConnections": 50
+  }
+}
+```
+
+#### Update Tenant Quota Limits
+
+**Request:**
+```bash
+curl -X PUT http://localhost:8081/admin/tenants/{tenantId}/limits \
+  -H "Authorization: Bearer <ACCESS_TOKEN>" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "maxActiveShipments": 5000,
+    "maxEventsPerSecond": 200,
+    "maxSseConnections": 100
+  }'
+```
+
+#### Get Tenant Usage
+
+**Request:**
+```bash
+curl -X GET http://localhost:8081/admin/tenants/{tenantId}/usage \
+  -H "Authorization: Bearer <ACCESS_TOKEN>"
+```
+
+#### Get Retention Policy
+
+**Request:**
+```bash
+curl -X GET http://localhost:8081/admin/retention/tenants/{tenantId}/policy \
+  -H "Authorization: Bearer <ACCESS_TOKEN>"
+```
+
+**Response (200 OK):**
+```json
+{
+  "success": true,
+  "data": {
+    "tenantId": "123e4567-e89b-12d3-a456-426614174000",
+    "eventRetentionDays": 90,
+    "alertRetentionDays": 30,
+    "shipmentRetentionDays": 365,
+    "softDeleteEnabled": true,
+    "softDeleteGraceDays": 30
+  }
+}
+```
+
+#### Update Retention Policy
+
+**Request:**
+```bash
+curl -X PUT http://localhost:8081/admin/retention/tenants/{tenantId}/policy \
+  -H "Authorization: Bearer <ACCESS_TOKEN>" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "eventRetentionDays": 180,
+    "alertRetentionDays": 60,
+    "softDeleteEnabled": true
+  }'
+```
+
+#### Trigger Manual Data Purge
+
+**Request:**
+```bash
+curl -X POST http://localhost:8081/admin/retention/tenants/{tenantId}/purge \
+  -H "Authorization: Bearer <ACCESS_TOKEN>"
+```
+
+#### Delete Tenant Data (GDPR)
+
+**Request:**
+```bash
+curl -X DELETE "http://localhost:8081/admin/retention/tenants/{tenantId}/data?confirm=DELETE_ALL_DATA" \
+  -H "Authorization: Bearer <ACCESS_TOKEN>"
+```
+
+> ⚠️ **Warning**: This permanently deletes ALL data for the tenant. Use with extreme caution.
 
 ## Event Ingestion Service
 
@@ -530,6 +628,7 @@ All APIs use a consistent error response format:
 | `FORBIDDEN` | 403 | Access denied |
 | `RESOURCE_NOT_FOUND` | 404 | Resource not found |
 | `DUPLICATE_RESOURCE` | 409 | Resource already exists |
+| `RATE_LIMITED` | 429 | Quota exceeded, check `Retry-After` header |
 | `INTERNAL_ERROR` | 500 | Internal server error |
 
 ---

@@ -1,0 +1,330 @@
+{
+    "annotations": {
+        "list": []
+    },
+    "editable": true,
+    "fiscalYearStartMonth": 0,
+    "graphTooltip": 0,
+    "id": null,
+    "links": [],
+    "liveNow": false,
+    "panels": [
+        {
+            "title": "Tenant Quota Overview",
+            "type": "row",
+            "gridPos": {
+                "h": 1,
+                "w": 24,
+                "x": 0,
+                "y": 0
+            },
+            "collapsed": false
+        },
+        {
+            "title": "Events/Sec Usage (%)",
+            "type": "gauge",
+            "gridPos": {
+                "h": 6,
+                "w": 8,
+                "x": 0,
+                "y": 1
+            },
+            "fieldConfig": {
+                "defaults": {
+                    "thresholds": {
+                        "mode": "absolute",
+                        "steps": [
+                            {
+                                "color": "green",
+                                "value": null
+                            },
+                            {
+                                "color": "yellow",
+                                "value": 70
+                            },
+                            {
+                                "color": "red",
+                                "value": 90
+                            }
+                        ]
+                    },
+                    "min": 0,
+                    "max": 100,
+                    "unit": "percent"
+                }
+            },
+            "options": {
+                "showThresholdLabels": false,
+                "showThresholdMarkers": true
+            },
+            "targets": [
+                {
+                    "expr": "tenant_quota_eps_percent",
+                    "legendFormat": "{{ tenant_id }}"
+                }
+            ]
+        },
+        {
+            "title": "Active Shipments Usage (%)",
+            "type": "gauge",
+            "gridPos": {
+                "h": 6,
+                "w": 8,
+                "x": 8,
+                "y": 1
+            },
+            "fieldConfig": {
+                "defaults": {
+                    "thresholds": {
+                        "mode": "absolute",
+                        "steps": [
+                            {
+                                "color": "green",
+                                "value": null
+                            },
+                            {
+                                "color": "yellow",
+                                "value": 70
+                            },
+                            {
+                                "color": "red",
+                                "value": 90
+                            }
+                        ]
+                    },
+                    "min": 0,
+                    "max": 100,
+                    "unit": "percent"
+                }
+            },
+            "targets": [
+                {
+                    "expr": "tenant_quota_shipments_percent",
+                    "legendFormat": "{{ tenant_id }}"
+                }
+            ]
+        },
+        {
+            "title": "SSE Connections Usage (%)",
+            "type": "gauge",
+            "gridPos": {
+                "h": 6,
+                "w": 8,
+                "x": 16,
+                "y": 1
+            },
+            "fieldConfig": {
+                "defaults": {
+                    "thresholds": {
+                        "mode": "absolute",
+                        "steps": [
+                            {
+                                "color": "green",
+                                "value": null
+                            },
+                            {
+                                "color": "yellow",
+                                "value": 70
+                            },
+                            {
+                                "color": "red",
+                                "value": 90
+                            }
+                        ]
+                    },
+                    "min": 0,
+                    "max": 100,
+                    "unit": "percent"
+                }
+            },
+            "targets": [
+                {
+                    "expr": "tenant_quota_sse_percent",
+                    "legendFormat": "{{ tenant_id }}"
+                }
+            ]
+        },
+        {
+            "title": "Throttled Requests",
+            "type": "row",
+            "gridPos": {
+                "h": 1,
+                "w": 24,
+                "x": 0,
+                "y": 7
+            },
+            "collapsed": false
+        },
+        {
+            "title": "Throttled Requests Rate (Gateway)",
+            "type": "timeseries",
+            "gridPos": {
+                "h": 8,
+                "w": 12,
+                "x": 0,
+                "y": 8
+            },
+            "fieldConfig": {
+                "defaults": {
+                    "custom": {
+                        "drawStyle": "line",
+                        "lineInterpolation": "smooth",
+                        "fillOpacity": 20
+                    },
+                    "color": {
+                        "mode": "palette-classic"
+                    }
+                }
+            },
+            "targets": [
+                {
+                    "expr": "rate(tenant_throttled_requests_total[5m])",
+                    "legendFormat": "{{ tenant_id }}"
+                }
+            ]
+        },
+        {
+            "title": "Event Ingestion Throttled",
+            "type": "timeseries",
+            "gridPos": {
+                "h": 8,
+                "w": 12,
+                "x": 12,
+                "y": 8
+            },
+            "fieldConfig": {
+                "defaults": {
+                    "custom": {
+                        "drawStyle": "line",
+                        "lineInterpolation": "smooth",
+                        "fillOpacity": 20
+                    },
+                    "color": {
+                        "mode": "palette-classic"
+                    }
+                }
+            },
+            "targets": [
+                {
+                    "expr": "rate(event_ingestion_throttled_total[5m])",
+                    "legendFormat": "{{ tenant_id }}"
+                }
+            ]
+        },
+        {
+            "title": "Usage Details",
+            "type": "row",
+            "gridPos": {
+                "h": 1,
+                "w": 24,
+                "x": 0,
+                "y": 16
+            },
+            "collapsed": false
+        },
+        {
+            "title": "Current Events/Sec by Tenant",
+            "type": "stat",
+            "gridPos": {
+                "h": 4,
+                "w": 8,
+                "x": 0,
+                "y": 17
+            },
+            "targets": [
+                {
+                    "expr": "tenant_quota_eps_usage",
+                    "legendFormat": "{{ tenant_id }}"
+                }
+            ]
+        },
+        {
+            "title": "Active Shipments by Tenant",
+            "type": "stat",
+            "gridPos": {
+                "h": 4,
+                "w": 8,
+                "x": 8,
+                "y": 17
+            },
+            "targets": [
+                {
+                    "expr": "tenant_quota_shipments_usage",
+                    "legendFormat": "{{ tenant_id }}"
+                }
+            ]
+        },
+        {
+            "title": "SSE Connections by Tenant",
+            "type": "stat",
+            "gridPos": {
+                "h": 4,
+                "w": 8,
+                "x": 16,
+                "y": 17
+            },
+            "targets": [
+                {
+                    "expr": "sse_active_connections",
+                    "legendFormat": "{{ tenant_id }}"
+                }
+            ]
+        },
+        {
+            "title": "SSE Connections Rejected",
+            "type": "timeseries",
+            "gridPos": {
+                "h": 6,
+                "w": 24,
+                "x": 0,
+                "y": 21
+            },
+            "fieldConfig": {
+                "defaults": {
+                    "custom": {
+                        "drawStyle": "line",
+                        "lineInterpolation": "smooth",
+                        "fillOpacity": 10
+                    }
+                }
+            },
+            "targets": [
+                {
+                    "expr": "rate(sse_connection_rejected_total[5m])",
+                    "legendFormat": "{{ tenant_id }}"
+                }
+            ]
+        }
+    ],
+    "refresh": "30s",
+    "schemaVersion": 38,
+    "tags": [
+        "supplysight",
+        "quotas",
+        "tenants"
+    ],
+    "templating": {
+        "list": [
+            {
+                "name": "tenant_id",
+                "type": "query",
+                "query": "label_values(tenant_quota_eps_percent, tenant_id)",
+                "multi": true,
+                "includeAll": true,
+                "current": {
+                    "text": "All",
+                    "value": "$__all"
+                }
+            }
+        ]
+    },
+    "time": {
+        "from": "now-1h",
+        "to": "now"
+    },
+    "timepicker": {},
+    "timezone": "browser",
+    "title": "Tenant Quotas",
+    "uid": "tenant-quotas",
+    "version": 1
+}

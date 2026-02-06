@@ -6,7 +6,7 @@ spring:
     baseline-on-migrate: true
 
   datasource:
-    url: jdbc:postgresql://${POSTGRES_HOST:127.0.0.1}:${POSTGRES_PORT:5432}/${POSTGRES_DB:supplysight}
+    url: jdbc:postgresql://${POSTGRES_HOST:127.0.0.1}:${POSTGRES_PORT:5433}/${POSTGRES_DB:supplysight}
     username: ${POSTGRES_USER:supplysight}
     password: ${POSTGRES_PASSWORD:supplysight_secret_new}
     hikari:
@@ -15,7 +15,7 @@ spring:
 
   jpa:
     hibernate:
-      ddl-auto: update
+      ddl-auto: validate
     properties:
       hibernate:
         dialect: org.hibernate.dialect.PostgreSQLDialect

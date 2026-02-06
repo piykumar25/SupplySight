@@ -16,10 +16,13 @@ Write-Host ""
 
 # Define service ports for duplicate detection
 $servicePorts = @{
+    "Gateway"    = 8080
     "Identity"   = 8081
+    "Ingestion"  = 8082
     "Tracking"   = 8083
     "Visibility" = 8084
     "Prediction" = 8085
+    "Audit"      = 8086
     "Frontend"   = 5173
 }
 
@@ -32,22 +35,27 @@ function Test-PortInUse {
 
 # 1. Start Infrastructure (Docker)
 Write-Host "1. Checking Infrastructure..." -ForegroundColor Yellow
-$dockerStatus = docker-compose -f ../infra/docker-compose.yml ps -q 2>$null
-if (-not $dockerStatus) {
-    Write-Host "   Starting Docker containers..." -ForegroundColor Gray
-    
-    if ($Detached) {
-        Start-Process powershell -ArgumentList "-Command", "cd ../infra; docker-compose up -d" -Wait
-    }
-    else {
-        Start-Process powershell -ArgumentList "-NoExit", "-Command", "cd ../infra; docker-compose up -d; Write-Host 'Infrastructure Started!' -ForegroundColor Green; Read-Host 'Press Enter to close...'"
-    }
-    
+
+# Check if Postgres is specifically running (to determine if we need to wait)
+$postgresRunning = docker ps --filter "name=supplysight-postgres" --filter "status=running" -q
+
+Write-Host "   Ensuring Docker containers are up..." -ForegroundColor Gray
+
+# Always run docker-compose up -d to ensure state is correct
+if ($Detached) {
+    Start-Process powershell -ArgumentList "-Command", "cd '$PSScriptRoot/../infra'; docker-compose up -d" -Wait
+}
+else {
+    # Run synchronously, close window after brief pause
+    Start-Process powershell -ArgumentList "-Command", "cd '$PSScriptRoot/../infra'; docker-compose up -d; Write-Host 'Infrastructure Checked!' -ForegroundColor Green; Start-Sleep -Seconds 2" -Wait
+}
+
+if (-not $postgresRunning) {
     Write-Host "   Waiting 30s for databases to initialize..." -ForegroundColor Gray
     Start-Sleep -Seconds 30
 }
 else {
-    Write-Host "   Infrastructure is already running." -ForegroundColor Green
+    Write-Host "   Infrastructure is already running. Skipping wait." -ForegroundColor Green
 }
 
 # 2. Start Services
@@ -63,6 +71,16 @@ if ($Detached) {
     $pidFile = Join-Path $logsDir "service-pids.txt"
     "# SupplySight Service PIDs - $(Get-Date)" | Out-File $pidFile
 
+    # API Gateway
+    if (Test-PortInUse -Port $servicePorts["Gateway"]) {
+        Write-Host "   API Gateway already running on port $($servicePorts["Gateway"]). Skipping." -ForegroundColor DarkYellow
+    }
+    else {
+        $proc = Start-Process powershell -ArgumentList "-WindowStyle", "Hidden", "-Command", "cd '$PSScriptRoot'; ./start-api-gateway.ps1" -PassThru -RedirectStandardOutput "$logsDir\api-gateway.log" -RedirectStandardError "$logsDir\api-gateway-error.log" -WindowStyle Hidden
+        "Gateway:$($proc.Id)" | Out-File $pidFile -Append
+        Write-Host "   Started API Gateway (PID: $($proc.Id))" -ForegroundColor Green
+    }
+
     # Identity Service
     if (Test-PortInUse -Port $servicePorts["Identity"]) {
         Write-Host "   Identity Service already running on port $($servicePorts["Identity"]). Skipping." -ForegroundColor DarkYellow
@@ -71,6 +89,19 @@ if ($Detached) {
         $proc = Start-Process powershell -ArgumentList "-WindowStyle", "Hidden", "-Command", "cd '$PSScriptRoot'; ./start-identity-service.ps1" -PassThru -RedirectStandardOutput "$logsDir\identity-service.log" -RedirectStandardError "$logsDir\identity-service-error.log" -WindowStyle Hidden
         "Identity:$($proc.Id)" | Out-File $pidFile -Append
         Write-Host "   Started Identity Service (PID: $($proc.Id))" -ForegroundColor Green
+    }
+
+    # Wait a bit
+    Start-Sleep -Seconds 5
+
+    # Event Ingestion Service
+    if (Test-PortInUse -Port $servicePorts["Ingestion"]) {
+        Write-Host "   Event Ingestion Service already running on port $($servicePorts["Ingestion"]). Skipping." -ForegroundColor DarkYellow
+    }
+    else {
+        $proc = Start-Process powershell -ArgumentList "-WindowStyle", "Hidden", "-Command", "cd '$PSScriptRoot'; ./start-ingestion-service.ps1" -PassThru -RedirectStandardOutput "$logsDir\ingestion-service.log" -RedirectStandardError "$logsDir\ingestion-service-error.log" -WindowStyle Hidden
+        "Ingestion:$($proc.Id)" | Out-File $pidFile -Append
+        Write-Host "   Started Event Ingestion Service (PID: $($proc.Id))" -ForegroundColor Green
     }
 
     # Wait a bit
@@ -106,6 +137,16 @@ if ($Detached) {
         Write-Host "   Started Prediction Service (PID: $($proc.Id))" -ForegroundColor Green
     }
 
+    # Audit Service
+    if (Test-PortInUse -Port $servicePorts["Audit"]) {
+        Write-Host "   Audit Service already running on port $($servicePorts["Audit"]). Skipping." -ForegroundColor DarkYellow
+    }
+    else {
+        $proc = Start-Process powershell -ArgumentList "-WindowStyle", "Hidden", "-Command", "cd '$PSScriptRoot'; ./start-audit-service.ps1" -PassThru -RedirectStandardOutput "$logsDir\audit-service.log" -RedirectStandardError "$logsDir\audit-service-error.log" -WindowStyle Hidden
+        "Audit:$($proc.Id)" | Out-File $pidFile -Append
+        Write-Host "   Started Audit Service (PID: $($proc.Id))" -ForegroundColor Green
+    }
+
     # 3. Start Frontend
     Write-Host ""
     Write-Host "3. Starting Frontend (Hidden Window)..." -ForegroundColor Yellow
@@ -132,6 +173,16 @@ else {
     # INTERACTIVE MODE (Original Behavior)
     Write-Host "2. Starting Backend Services..." -ForegroundColor Yellow
     
+    # API Gateway
+    if (Test-PortInUse -Port $servicePorts["Gateway"]) {
+        Write-Host "   API Gateway already running on port $($servicePorts["Gateway"]). Skipping." -ForegroundColor DarkYellow
+    }
+    else {
+        Write-Host "   Launching API Gateway..." -ForegroundColor Gray
+        $title = "SupplySight - API Gateway (8080)"
+        Start-Process powershell -ArgumentList "-NoExit", "-Command", "`$Host.UI.RawUI.WindowTitle = '$title'; cd '$PSScriptRoot'; .\start-api-gateway.ps1"
+    }
+
     # Identity Service
     if (Test-PortInUse -Port $servicePorts["Identity"]) {
         Write-Host "   Identity Service already running on port $($servicePorts["Identity"]). Skipping." -ForegroundColor DarkYellow
@@ -144,6 +195,16 @@ else {
 
     # Wait a bit
     Start-Sleep -Seconds 5
+
+    # Event Ingestion Service
+    if (Test-PortInUse -Port $servicePorts["Ingestion"]) {
+        Write-Host "   Event Ingestion Service already running on port $($servicePorts["Ingestion"]). Skipping." -ForegroundColor DarkYellow
+    }
+    else {
+        Write-Host "   Launching Event Ingestion Service..." -ForegroundColor Gray
+        $title = "SupplySight - Event Ingestion (8082)"
+        Start-Process powershell -ArgumentList "-NoExit", "-Command", "`$Host.UI.RawUI.WindowTitle = '$title'; cd '$PSScriptRoot'; .\start-ingestion-service.ps1"
+    }
 
     # Tracking Service
     if (Test-PortInUse -Port $servicePorts["Tracking"]) {
@@ -175,6 +236,16 @@ else {
         Start-Process powershell -ArgumentList "-NoExit", "-Command", "`$Host.UI.RawUI.WindowTitle = '$title'; cd '$PSScriptRoot'; .\start-prediction-service.ps1"
     }
 
+    # Audit Service
+    if (Test-PortInUse -Port $servicePorts["Audit"]) {
+        Write-Host "   Audit Service already running on port $($servicePorts["Audit"]). Skipping." -ForegroundColor DarkYellow
+    }
+    else {
+        Write-Host "   Launching Audit Service..." -ForegroundColor Gray
+        $title = "SupplySight - Audit Service (8086)"
+        Start-Process powershell -ArgumentList "-NoExit", "-Command", "`$Host.UI.RawUI.WindowTitle = '$title'; cd '$PSScriptRoot'; .\start-audit-service.ps1"
+    }
+    
     # 3. Start Frontend
     Write-Host ""
     Write-Host "3. Starting Frontend..." -ForegroundColor Yellow

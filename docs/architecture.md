@@ -191,18 +191,60 @@ SELECT * FROM shipments
 WHERE tenant_id = :tenantId AND id = :shipmentId;
 ```
 
+## Governance & Quotas
+
+### Tenant Quotas
+Each tenant has configurable limits:
+- **Max Active Shipments**: Default 1000
+- **Events per Second**: Default 100/sec
+- **SSE Connections**: Default 50
+
+### Enforcement Points
+1. **API Gateway**: Rate limiting via `TenantQuotaFilter`
+2. **Event Ingestion**: `QuotaEnforcementInterceptor` for events/sec
+3. **SSE Streaming**: `SseConnectionLimitService` for connection limits
+
+### Quota Response
+When limits are exceeded, APIs return `429 Too Many Requests` with `Retry-After` header.
+
+## Data Lifecycle & Retention
+
+### Retention Policies
+Configurable per-tenant retention periods:
+- **Events**: 90 days (default)
+- **Alerts**: 30 days (default)
+- **Completed Shipments**: 365 days (default)
+- **Audit Logs**: 730 days (default)
+
+### Deletion Strategy
+- **Soft Delete**: Marks records as deleted (default)
+- **Hard Delete**: Permanent removal after grace period
+- **GDPR Deletion**: Complete tenant data wipe via Admin API
+
+### Background Purge
+`DataPurgeService` runs daily at 2 AM to remove expired data.
+
 ## Security
 
 ### Authentication
 - OAuth2/JWT-based authentication
 - BCrypt password hashing
-- Refresh token rotation
+- Refresh token rotation (7-day expiry)
 - Token blacklisting on logout
+- 15-minute access token expiry
 
 ### Authorization
 - Role-based access control (RBAC)
 - Three roles: ADMIN, OPS_USER, VIEWER
 - Endpoint-level permission checks
+- `@PreAuthorize` for admin endpoints
+
+### Security Headers (Frontend)
+- Content-Security-Policy (CSP)
+- X-Content-Type-Options: nosniff
+- X-Frame-Options: SAMEORIGIN
+- X-XSS-Protection
+- Referrer-Policy: strict-origin-when-cross-origin
 
 ### Audit
 - All significant actions logged
@@ -226,14 +268,22 @@ WHERE tenant_id = :tenantId AND id = :shipmentId;
 - Correlation ID propagation
 - Tenant ID in log context
 
-## Performance Targets
+## Performance Targets & SLOs
 
 | Metric | Target |
 |--------|--------|
-| API Response Time (p99) | <300ms |
+| API Availability | 99.9% |
+| API Response Time (p95) | <300ms |
 | Event Ingestion Throughput | 10,000 events/sec |
 | Query Latency (cached) | <50ms |
 | Query Latency (uncached) | <200ms |
+| Alert Delivery | <5 seconds |
+
+### Error Budgets
+Monthly error budget with tiered alerts:
+- **Warning**: >80% usage
+- **Critical**: >95% usage
+- **Exhausted**: Feature freeze triggered
 
 ## Scalability
 

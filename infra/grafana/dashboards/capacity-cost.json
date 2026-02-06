@@ -1,0 +1,371 @@
+{
+    "annotations": {
+        "list": []
+    },
+    "editable": true,
+    "fiscalYearStartMonth": 0,
+    "graphTooltip": 1,
+    "id": null,
+    "links": [],
+    "liveNow": false,
+    "panels": [
+        {
+            "title": "Resource Capacity Overview",
+            "type": "row",
+            "gridPos": {
+                "h": 1,
+                "w": 24,
+                "x": 0,
+                "y": 0
+            },
+            "collapsed": false
+        },
+        {
+            "title": "JVM Heap Usage",
+            "type": "gauge",
+            "gridPos": {
+                "h": 5,
+                "w": 6,
+                "x": 0,
+                "y": 1
+            },
+            "fieldConfig": {
+                "defaults": {
+                    "thresholds": {
+                        "mode": "absolute",
+                        "steps": [
+                            {
+                                "color": "green",
+                                "value": null
+                            },
+                            {
+                                "color": "yellow",
+                                "value": 70
+                            },
+                            {
+                                "color": "red",
+                                "value": 85
+                            }
+                        ]
+                    },
+                    "min": 0,
+                    "max": 100,
+                    "unit": "percent"
+                }
+            },
+            "targets": [
+                {
+                    "expr": "capacity:jvm_heap:usage_percent",
+                    "legendFormat": "{{ job }}"
+                }
+            ]
+        },
+        {
+            "title": "DB Pool Usage",
+            "type": "gauge",
+            "gridPos": {
+                "h": 5,
+                "w": 6,
+                "x": 6,
+                "y": 1
+            },
+            "fieldConfig": {
+                "defaults": {
+                    "thresholds": {
+                        "mode": "absolute",
+                        "steps": [
+                            {
+                                "color": "green",
+                                "value": null
+                            },
+                            {
+                                "color": "yellow",
+                                "value": 60
+                            },
+                            {
+                                "color": "red",
+                                "value": 80
+                            }
+                        ]
+                    },
+                    "min": 0,
+                    "max": 100,
+                    "unit": "percent"
+                }
+            },
+            "targets": [
+                {
+                    "expr": "capacity:db_pool:usage_percent",
+                    "legendFormat": "{{ job }}"
+                }
+            ]
+        },
+        {
+            "title": "CPU Usage",
+            "type": "gauge",
+            "gridPos": {
+                "h": 5,
+                "w": 6,
+                "x": 12,
+                "y": 1
+            },
+            "fieldConfig": {
+                "defaults": {
+                    "thresholds": {
+                        "mode": "absolute",
+                        "steps": [
+                            {
+                                "color": "green",
+                                "value": null
+                            },
+                            {
+                                "color": "yellow",
+                                "value": 70
+                            },
+                            {
+                                "color": "red",
+                                "value": 90
+                            }
+                        ]
+                    },
+                    "min": 0,
+                    "max": 100,
+                    "unit": "percent"
+                }
+            },
+            "targets": [
+                {
+                    "expr": "capacity:cpu:usage_percent",
+                    "legendFormat": "{{ job }}"
+                }
+            ]
+        },
+        {
+            "title": "Kafka Consumer Lag",
+            "type": "stat",
+            "gridPos": {
+                "h": 5,
+                "w": 6,
+                "x": 18,
+                "y": 1
+            },
+            "fieldConfig": {
+                "defaults": {
+                    "thresholds": {
+                        "mode": "absolute",
+                        "steps": [
+                            {
+                                "color": "green",
+                                "value": null
+                            },
+                            {
+                                "color": "yellow",
+                                "value": 1000
+                            },
+                            {
+                                "color": "red",
+                                "value": 10000
+                            }
+                        ]
+                    }
+                }
+            },
+            "targets": [
+                {
+                    "expr": "capacity:kafka_lag:max",
+                    "legendFormat": "Max Lag"
+                }
+            ]
+        },
+        {
+            "title": "Cost Signals - Events",
+            "type": "row",
+            "gridPos": {
+                "h": 1,
+                "w": 24,
+                "x": 0,
+                "y": 6
+            },
+            "collapsed": false
+        },
+        {
+            "title": "Events Ingested (24h by Tenant)",
+            "type": "stat",
+            "gridPos": {
+                "h": 4,
+                "w": 8,
+                "x": 0,
+                "y": 7
+            },
+            "targets": [
+                {
+                    "expr": "cost:events_ingested:total_1d",
+                    "legendFormat": "{{ tenant_id }}"
+                }
+            ]
+        },
+        {
+            "title": "Events Rate (avg/s)",
+            "type": "timeseries",
+            "gridPos": {
+                "h": 6,
+                "w": 16,
+                "x": 8,
+                "y": 7
+            },
+            "fieldConfig": {
+                "defaults": {
+                    "custom": {
+                        "drawStyle": "line",
+                        "fillOpacity": 20
+                    }
+                }
+            },
+            "targets": [
+                {
+                    "expr": "cost:events_rate:avg_5m",
+                    "legendFormat": "{{ tenant_id }}"
+                }
+            ]
+        },
+        {
+            "title": "Cost Signals - SSE & API",
+            "type": "row",
+            "gridPos": {
+                "h": 1,
+                "w": 24,
+                "x": 0,
+                "y": 13
+            },
+            "collapsed": false
+        },
+        {
+            "title": "SSE Connection-Minutes (hourly)",
+            "type": "timeseries",
+            "gridPos": {
+                "h": 6,
+                "w": 12,
+                "x": 0,
+                "y": 14
+            },
+            "fieldConfig": {
+                "defaults": {
+                    "custom": {
+                        "drawStyle": "line",
+                        "fillOpacity": 20
+                    }
+                }
+            },
+            "targets": [
+                {
+                    "expr": "cost:sse_connection_minutes:total_1h",
+                    "legendFormat": "{{ tenant_id }}"
+                }
+            ]
+        },
+        {
+            "title": "API Requests (hourly)",
+            "type": "timeseries",
+            "gridPos": {
+                "h": 6,
+                "w": 12,
+                "x": 12,
+                "y": 14
+            },
+            "fieldConfig": {
+                "defaults": {
+                    "custom": {
+                        "drawStyle": "line",
+                        "fillOpacity": 20
+                    }
+                }
+            },
+            "targets": [
+                {
+                    "expr": "cost:api_requests:total_1h",
+                    "legendFormat": "{{ tenant_id }}"
+                }
+            ]
+        },
+        {
+            "title": "Quota Headroom",
+            "type": "row",
+            "gridPos": {
+                "h": 1,
+                "w": 24,
+                "x": 0,
+                "y": 20
+            },
+            "collapsed": false
+        },
+        {
+            "title": "Shipment Quota Usage",
+            "type": "timeseries",
+            "gridPos": {
+                "h": 6,
+                "w": 12,
+                "x": 0,
+                "y": 21
+            },
+            "fieldConfig": {
+                "defaults": {
+                    "unit": "percent",
+                    "max": 100
+                }
+            },
+            "targets": [
+                {
+                    "expr": "capacity:shipments:usage_percent",
+                    "legendFormat": "{{ tenant_id }}"
+                }
+            ]
+        },
+        {
+            "title": "Events/Sec Quota Usage",
+            "type": "timeseries",
+            "gridPos": {
+                "h": 6,
+                "w": 12,
+                "x": 12,
+                "y": 21
+            },
+            "fieldConfig": {
+                "defaults": {
+                    "unit": "percent",
+                    "max": 100
+                }
+            },
+            "targets": [
+                {
+                    "expr": "capacity:eps:usage_percent",
+                    "legendFormat": "{{ tenant_id }}"
+                }
+            ]
+        }
+    ],
+    "refresh": "1m",
+    "schemaVersion": 38,
+    "tags": [
+        "supplysight",
+        "capacity",
+        "cost"
+    ],
+    "templating": {
+        "list": [
+            {
+                "name": "tenant_id",
+                "type": "query",
+                "query": "label_values(cost:events_ingested:total_1d, tenant_id)",
+                "multi": true,
+                "includeAll": true
+            }
+        ]
+    },
+    "time": {
+        "from": "now-24h",
+        "to": "now"
+    },
+    "title": "Capacity & Cost",
+    "uid": "capacity-cost",
+    "version": 1
+}

@@ -9,10 +9,13 @@ Write-Host ""
 
 # Define service ports
 $services = @(
+    @{ Name = "API Gateway"; Port = 8080; Type = "Backend" },
     @{ Name = "Identity Service"; Port = 8081; Type = "Backend" },
+    @{ Name = "Event Ingestion"; Port = 8082; Type = "Backend" },
     @{ Name = "Tracking Service"; Port = 8083; Type = "Backend" },
     @{ Name = "Visibility Service"; Port = 8084; Type = "Backend" },
     @{ Name = "Prediction Service"; Port = 8085; Type = "Backend" },
+    @{ Name = "Audit Service"; Port = 8086; Type = "Backend" },
     @{ Name = "Frontend"; Port = 5173; Type = "Frontend" }
 )
 

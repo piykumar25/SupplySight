@@ -1,0 +1,206 @@
+# Prometheus Alert Rules for SupplySight
+groups:
+  - name: supplysight-alerts
+    rules:
+      # High error rate (5xx responses)
+      - alert: HighErrorRate
+        expr: |
+          sum(rate(http_server_requests_seconds_count{status=~"5.."}[5m])) by (job)
+          /
+          sum(rate(http_server_requests_seconds_count[5m])) by (job)
+          > 0.05
+        for: 2m
+        labels:
+          severity: critical
+        annotations:
+          summary: "High error rate on {{ $labels.job }}"
+          description: "Error rate is {{ $value | humanizePercentage }} for {{ $labels.job }}"
+
+      # High API latency (P95 > 500ms)
+      - alert: HighAPILatency
+        expr: |
+          histogram_quantile(0.95, 
+            sum(rate(http_server_requests_seconds_bucket[5m])) by (job, le)
+          ) > 0.5
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High API latency on {{ $labels.job }}"
+          description: "P95 latency is {{ $value }}s for {{ $labels.job }}"
+
+      # Kafka consumer lag
+      - alert: KafkaConsumerLag
+        expr: |
+          kafka_consumer_fetch_manager_records_lag_max > 10000
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Kafka consumer lag is high"
+          description: "Consumer lag is {{ $value }} messages behind"
+
+      # Service down
+      - alert: ServiceDown
+        expr: up == 0
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Service {{ $labels.job }} is down"
+          description: "{{ $labels.job }} has been down for more than 1 minute"
+
+      # High JVM memory usage
+      - alert: HighJVMMemoryUsage
+        expr: |
+          (jvm_memory_used_bytes{area="heap"} / jvm_memory_max_bytes{area="heap"}) > 0.85
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High JVM heap usage on {{ $labels.job }}"
+          description: "JVM heap usage is {{ $value | humanizePercentage }} on {{ $labels.job }}"
+
+      # Database connection pool exhaustion
+      - alert: DatabaseConnectionPoolExhausted
+        expr: |
+          hikaricp_connections_pending > 5
+        for: 2m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Database connection pool under pressure on {{ $labels.job }}"
+          description: "{{ $value }} connections pending on {{ $labels.job }}"
+
+      # SSE disconnect rate (custom metric)
+      - alert: HighSSEDisconnectRate
+        expr: |
+          rate(sse_disconnects_total[1m]) > 10
+        for: 1m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High SSE disconnect rate"
+          description: "SSE disconnects are occurring at {{ $value }}/sec"
+
+      # Event ingestion throughput drop
+      - alert: LowEventIngestionRate
+        expr: |
+          rate(kafka_messages_produced_total{job="event-ingestion-service"}[5m]) < 1
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Low event ingestion rate"
+          description: "Event ingestion rate has dropped to {{ $value }}/sec"
+
+  # Tenant Quota Alerts
+  - name: tenant-quota-alerts
+    rules:
+      # Tenant approaching quota limit (>80%)
+      - alert: TenantQuotaWarning
+        expr: |
+          tenant_quota_eps_percent > 80
+          or tenant_quota_shipments_percent > 80
+          or tenant_quota_sse_percent > 80
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Tenant {{ $labels.tenant_id }} approaching quota limit"
+          description: "Quota usage at {{ $value }}% for tenant {{ $labels.tenant_id }}"
+
+      # Tenant quota exceeded (>95%)
+      - alert: TenantQuotaCritical
+        expr: |
+          tenant_quota_eps_percent > 95
+          or tenant_quota_shipments_percent > 95
+          or tenant_quota_sse_percent > 95
+        for: 2m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Tenant {{ $labels.tenant_id }} quota critically high"
+          description: "Quota usage at {{ $value }}% for tenant {{ $labels.tenant_id }}"
+
+      # High rate of throttled requests
+      - alert: HighThrottleRate
+        expr: |
+          rate(tenant_throttled_requests_total[5m]) > 10
+        for: 2m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High throttle rate for tenant {{ $labels.tenant_id }}"
+          description: "Tenant {{ $labels.tenant_id }} is being throttled at {{ $value }}/sec"
+
+      # SSE connections rejected
+      - alert: SseConnectionsRejected
+        expr: |
+          rate(sse_connection_rejected_total[5m]) > 1
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "SSE connections being rejected for tenant {{ $labels.tenant_id }}"
+          description: "{{ $value }} SSE connections/sec rejected due to quota"
+
+  # SLO Error Budget Alerts
+  - name: slo-error-budget-alerts
+    rules:
+      # Fast error budget burn (burning 2% of monthly budget in 1 hour)
+      - alert: SLOErrorBudgetFastBurn
+        expr: |
+          slo:availability:burn_rate_7d > 14.4
+        for: 5m
+        labels:
+          severity: critical
+        annotations:
+          summary: "SLO error budget burning fast"
+          description: "Burning error budget at {{ $value }}x rate. Will exhaust in < 5 days at this rate."
+
+      # Slow error budget burn (burning at 2x sustainable rate)
+      - alert: SLOErrorBudgetSlowBurn
+        expr: |
+          slo:availability:burn_rate_7d > 2
+        for: 30m
+        labels:
+          severity: warning
+        annotations:
+          summary: "SLO error budget burning above target"
+          description: "Burning error budget at {{ $value }}x sustainable rate."
+
+      # Error budget exhausted
+      - alert: SLOErrorBudgetExhausted
+        expr: |
+          slo:availability:error_budget_remaining_30d < 0
+        for: 5m
+        labels:
+          severity: critical
+        annotations:
+          summary: "SLO error budget exhausted"
+          description: "Monthly error budget has been exceeded. Feature freeze recommended."
+
+      # Low error budget warning
+      - alert: SLOErrorBudgetLow
+        expr: |
+          slo:availability:error_budget_remaining_30d < 0.25
+          and slo:availability:error_budget_remaining_30d >= 0
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: "SLO error budget running low"
+          description: "Only {{ $value | humanizePercentage }} of error budget remaining."
+
+      # Latency SLO breach
+      - alert: LatencySLOBreach
+        expr: |
+          sli:visibility_api_latency:p95_5m > 0.3
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Visibility API latency exceeds SLO"
+          description: "P95 latency is {{ $value }}s, exceeding 300ms SLO target."
+

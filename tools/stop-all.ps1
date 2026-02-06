@@ -13,10 +13,13 @@ Write-Host ""
 
 # Define SupplySight service ports
 $servicePorts = @{
+    "API Gateway"        = 8080
     "Identity Service"   = 8081
+    "Event Ingestion"    = 8082
     "Tracking Service"   = 8083
     "Visibility Service" = 8084
     "Prediction Service" = 8085
+    "Audit Service"      = 8086
     "Frontend"           = 5173
 }
 
@@ -43,7 +46,7 @@ else {
 Write-Host ""
 Write-Host "2. Stopping Backend Services..." -ForegroundColor Cyan
 
-foreach ($service in @("Identity Service", "Tracking Service", "Visibility Service", "Prediction Service")) {
+foreach ($service in @("API Gateway", "Identity Service", "Event Ingestion", "Tracking Service", "Visibility Service", "Prediction Service", "Audit Service")) {
     $port = $servicePorts[$service]
     
     # Find process using the port
