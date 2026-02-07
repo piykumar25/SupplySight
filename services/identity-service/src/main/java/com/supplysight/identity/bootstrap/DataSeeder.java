@@ -4,6 +4,9 @@ import com.supplysight.identity.entity.Tenant;
 import com.supplysight.identity.entity.User;
 import com.supplysight.identity.repository.TenantRepository;
 import com.supplysight.identity.repository.UserRepository;
+import java.util.Map;
+import java.util.Set;
+import java.util.UUID;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.boot.ApplicationArguments;
@@ -12,14 +15,7 @@ import org.springframework.context.annotation.Profile;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
 
-import java.util.Map;
-import java.util.Set;
-import java.util.UUID;
-
-/**
- * Automatically seeds demo data on application startup.
- * Runs only if data is missing.
- */
+/** Automatically seeds demo data on application startup. Runs only if data is missing. */
 @Component
 @Profile("!prod") // Don't run in production
 public class DataSeeder implements ApplicationRunner {
@@ -31,9 +27,12 @@ public class DataSeeder implements ApplicationRunner {
     private final PasswordEncoder passwordEncoder;
 
     // Hardcoded Tenant ID to ensure consistency with Visibility Seeding
-    public static final UUID DEMO_TENANT_ID = UUID.fromString("9163981b-29ca-4765-b5ef-a1e838db11d2");
+    public static final UUID DEMO_TENANT_ID =
+            UUID.fromString("9163981b-29ca-4765-b5ef-a1e838db11d2");
 
-    public DataSeeder(TenantRepository tenantRepository, UserRepository userRepository,
+    public DataSeeder(
+            TenantRepository tenantRepository,
+            UserRepository userRepository,
             PasswordEncoder passwordEncoder) {
         this.tenantRepository = tenantRepository;
         this.userRepository = userRepository;
@@ -62,17 +61,42 @@ public class DataSeeder implements ApplicationRunner {
             log.info("Demo tenant exists (ID: {}).", tenant.getId());
         }
 
-        createUserIfMissing(tenant.getId(), "admin@demo.com", "admin", "admin123", "Admin", "User", Set.of("ADMIN"));
-        createUserIfMissing(tenant.getId(), "ops@demo.com", "opsuser", "ops123", "Operations", "User",
+        createUserIfMissing(
+                tenant.getId(),
+                "admin@demo.com",
+                "admin",
+                "admin123",
+                "Admin",
+                "User",
+                Set.of("ADMIN"));
+        createUserIfMissing(
+                tenant.getId(),
+                "ops@demo.com",
+                "opsuser",
+                "ops123",
+                "Operations",
+                "User",
                 Set.of("OPS_USER"));
-        createUserIfMissing(tenant.getId(), "viewer@demo.com", "viewer", "viewer123", "Viewer", "User",
+        createUserIfMissing(
+                tenant.getId(),
+                "viewer@demo.com",
+                "viewer",
+                "viewer123",
+                "Viewer",
+                "User",
                 Set.of("VIEWER"));
 
         log.info("Demo data check complete.");
     }
 
-    private void createUserIfMissing(UUID tenantId, String email, String username, String password,
-            String firstName, String lastName, Set<String> roles) {
+    private void createUserIfMissing(
+            UUID tenantId,
+            String email,
+            String username,
+            String password,
+            String firstName,
+            String lastName,
+            Set<String> roles) {
         if (!userRepository.existsByEmail(email)) {
             log.info("Creating user: {}", email);
             User user = new User();

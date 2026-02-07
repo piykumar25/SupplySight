@@ -1,10 +1,8 @@
 package com.supplysight.common.exception;
 
-/**
- * Base exception for all application-specific exceptions.
- */
+/** Base exception for all application-specific exceptions. */
 public class SupplySightException extends RuntimeException {
-    
+
     private final String errorCode;
     private final int httpStatus;
 

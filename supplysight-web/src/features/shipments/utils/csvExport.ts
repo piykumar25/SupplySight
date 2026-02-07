@@ -12,15 +12,15 @@ interface CsvColumn {
 const CSV_COLUMNS: CsvColumn[] = [
     {
         header: 'Shipment ID',
-        accessor: (s) => s.shipmentId,
+        accessor: (s) => s.shipmentId || '',
     },
     {
         header: 'Tracking Number',
-        accessor: (s) => s.trackingNumber,
+        accessor: (s) => s.trackingNumber || '',
     },
     {
         header: 'Status',
-        accessor: (s) => s.status,
+        accessor: (s) => s.status || '',
     },
     {
         header: 'Last Location',
@@ -41,6 +41,7 @@ const CSV_COLUMNS: CsvColumn[] = [
     {
         header: 'Risk Level',
         accessor: (s) => {
+            if (s.delayProbability === undefined) return 'N/A';
             const level = getRiskLevel(s.delayProbability);
             const labels: Record<RiskLevel, string> = {
                 all: 'All',
@@ -48,7 +49,7 @@ const CSV_COLUMNS: CsvColumn[] = [
                 delayed: 'Medium',
                 high: 'High',
             };
-            return labels[level];
+            return labels[level] || 'N/A';
         },
     },
     {
@@ -63,7 +64,7 @@ const CSV_COLUMNS: CsvColumn[] = [
     },
     {
         header: 'Updated At',
-        accessor: (s) => s.updatedAt,
+        accessor: (s) => s.updatedAt || '',
     },
 ];
 

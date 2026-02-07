@@ -6,6 +6,7 @@ import com.supplysight.identity.dto.TenantDto;
 import com.supplysight.identity.entity.Tenant;
 import com.supplysight.identity.entity.Tenant.TenantStatus;
 import com.supplysight.identity.repository.TenantRepository;
+import java.util.UUID;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.data.domain.Page;
@@ -13,11 +14,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.UUID;
-
-/**
- * Service for tenant management operations.
- */
+/** Service for tenant management operations. */
 @Service
 @Transactional(readOnly = true)
 public class TenantService {
@@ -30,9 +27,7 @@ public class TenantService {
         this.tenantRepository = tenantRepository;
     }
 
-    /**
-     * Create a new tenant.
-     */
+    /** Create a new tenant. */
     @Transactional
     public TenantDto.Response createTenant(TenantDto.CreateRequest request) {
         log.info("Creating tenant with code: {}", request.code());
@@ -56,26 +51,22 @@ public class TenantService {
         return toResponse(tenant);
     }
 
-    /**
-     * Get tenant by ID.
-     */
+    /** Get tenant by ID. */
     public TenantDto.Response getTenant(UUID tenantId) {
         Tenant tenant = findTenantOrThrow(tenantId);
         return toResponse(tenant);
     }
 
-    /**
-     * Get tenant by code.
-     */
+    /** Get tenant by code. */
     public TenantDto.Response getTenantByCode(String code) {
-        Tenant tenant = tenantRepository.findByCode(code.toLowerCase())
-                .orElseThrow(() -> new ResourceNotFoundException("Tenant", code));
+        Tenant tenant =
+                tenantRepository
+                        .findByCode(code.toLowerCase())
+                        .orElseThrow(() -> new ResourceNotFoundException("Tenant", code));
         return toResponse(tenant);
     }
 
-    /**
-     * Update tenant.
-     */
+    /** Update tenant. */
     @Transactional
     public TenantDto.Response updateTenant(UUID tenantId, TenantDto.UpdateRequest request) {
         log.info("Updating tenant: {}", tenantId);
@@ -107,9 +98,7 @@ public class TenantService {
         return toResponse(tenant);
     }
 
-    /**
-     * Soft delete tenant.
-     */
+    /** Soft delete tenant. */
     @Transactional
     public void deleteTenant(UUID tenantId) {
         log.info("Deleting tenant: {}", tenantId);
@@ -121,27 +110,20 @@ public class TenantService {
         log.info("Deleted tenant: {}", tenantId);
     }
 
-    /**
-     * List all active tenants.
-     */
+    /** List all active tenants. */
     public Page<TenantDto.Summary> listTenants(Pageable pageable) {
-        return tenantRepository.findAllActive(pageable)
-                .map(this::toSummary);
+        return tenantRepository.findAllActive(pageable).map(this::toSummary);
     }
 
-    /**
-     * List tenants by status.
-     */
+    /** List tenants by status. */
     public Page<TenantDto.Summary> listTenantsByStatus(TenantStatus status, Pageable pageable) {
-        return tenantRepository.findByStatus(status, pageable)
-                .map(this::toSummary);
+        return tenantRepository.findByStatus(status, pageable).map(this::toSummary);
     }
 
-    /**
-     * Check if tenant exists and is active.
-     */
+    /** Check if tenant exists and is active. */
     public boolean isTenantActive(UUID tenantId) {
-        return tenantRepository.findById(tenantId)
+        return tenantRepository
+                .findById(tenantId)
                 .map(t -> t.getStatus() == TenantStatus.ACTIVE)
                 .orElse(false);
     }
@@ -149,7 +131,8 @@ public class TenantService {
     // Helper methods
 
     private Tenant findTenantOrThrow(UUID tenantId) {
-        return tenantRepository.findById(tenantId)
+        return tenantRepository
+                .findById(tenantId)
                 .orElseThrow(() -> new ResourceNotFoundException("Tenant", tenantId));
     }
 
@@ -164,8 +147,7 @@ public class TenantService {
                 tenant.getAddress(),
                 tenant.getSettings(),
                 tenant.getCreatedAt(),
-                tenant.getUpdatedAt()
-        );
+                tenant.getUpdatedAt());
     }
 
     private TenantDto.Summary toSummary(Tenant tenant) {
@@ -174,7 +156,6 @@ public class TenantService {
                 tenant.getName(),
                 tenant.getCode(),
                 tenant.getStatus(),
-                tenant.getCreatedAt()
-        );
+                tenant.getCreatedAt());
     }
 }

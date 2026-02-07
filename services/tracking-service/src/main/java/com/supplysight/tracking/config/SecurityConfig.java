@@ -30,23 +30,42 @@ public class SecurityConfig {
 
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
-        http
-            .csrf(AbstractHttpConfigurer::disable)
-            .cors(cors -> cors.configurationSource(request -> {
-                var corsConfiguration = new org.springframework.web.cors.CorsConfiguration();
-                corsConfiguration.setAllowedOrigins(java.util.List.of("http://localhost:5173", "http://localhost:5174"));
-                corsConfiguration.setAllowedMethods(java.util.List.of("GET", "POST", "PUT", "DELETE", "OPTIONS"));
-                corsConfiguration.setAllowedHeaders(java.util.List.of("*"));
-                corsConfiguration.setAllowCredentials(true);
-                return corsConfiguration;
-            }))
-            .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
-            .authorizeHttpRequests(auth -> auth
-                .requestMatchers("/actuator/**").permitAll()
-                .requestMatchers("/api-docs/**", "/swagger-ui/**", "/swagger-ui.html").permitAll()
-                .anyRequest().authenticated()
-            )
-            .addFilterBefore(jwtAuthenticationFilter(), UsernamePasswordAuthenticationFilter.class);
+        http.csrf(AbstractHttpConfigurer::disable)
+                .cors(
+                        cors ->
+                                cors.configurationSource(
+                                        request -> {
+                                            var corsConfiguration =
+                                                    new org.springframework.web.cors
+                                                            .CorsConfiguration();
+                                            corsConfiguration.setAllowedOrigins(
+                                                    java.util.List.of(
+                                                            "http://localhost:5173",
+                                                            "http://localhost:5174"));
+                                            corsConfiguration.setAllowedMethods(
+                                                    java.util.List.of(
+                                                            "GET", "POST", "PUT", "DELETE",
+                                                            "OPTIONS"));
+                                            corsConfiguration.setAllowedHeaders(
+                                                    java.util.List.of("*"));
+                                            corsConfiguration.setAllowCredentials(true);
+                                            return corsConfiguration;
+                                        }))
+                .sessionManagement(
+                        session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+                .authorizeHttpRequests(
+                        auth ->
+                                auth.requestMatchers("/actuator/**")
+                                        .permitAll()
+                                        .requestMatchers(
+                                                "/api-docs/**",
+                                                "/swagger-ui/**",
+                                                "/swagger-ui.html")
+                                        .permitAll()
+                                        .anyRequest()
+                                        .authenticated())
+                .addFilterBefore(
+                        jwtAuthenticationFilter(), UsernamePasswordAuthenticationFilter.class);
         return http.build();
     }
 }

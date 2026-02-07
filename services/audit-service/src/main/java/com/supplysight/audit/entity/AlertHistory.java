@@ -1,17 +1,14 @@
 package com.supplysight.audit.entity;
 
 import jakarta.persistence.*;
+import java.time.Instant;
+import java.util.Map;
+import java.util.UUID;
 import lombok.*;
 import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.type.SqlTypes;
 
-import java.time.Instant;
-import java.util.Map;
-import java.util.UUID;
-
-/**
- * Alert history entity for tracking alert lifecycle.
- */
+/** Alert history entity for tracking alert lifecycle. */
 @Entity
 @Table(name = "alert_history", schema = "audit")
 @Getter

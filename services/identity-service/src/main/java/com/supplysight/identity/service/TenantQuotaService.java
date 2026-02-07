@@ -7,21 +7,18 @@ import com.supplysight.identity.repository.TenantQuotaRepository;
 import com.supplysight.identity.repository.TenantRepository;
 import io.micrometer.core.instrument.Gauge;
 import io.micrometer.core.instrument.MeterRegistry;
+import java.time.Duration;
+import java.time.Instant;
+import java.time.LocalDate;
+import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.time.Duration;
-import java.time.Instant;
-import java.time.LocalDate;
-import java.util.UUID;
-import java.util.concurrent.ConcurrentHashMap;
-
-/**
- * Service for managing tenant quotas and tracking usage.
- */
+/** Service for managing tenant quotas and tracking usage. */
 @Service
 @Transactional(readOnly = true)
 public class TenantQuotaService {
@@ -50,19 +47,16 @@ public class TenantQuotaService {
         this.meterRegistry = meterRegistry;
     }
 
-    /**
-     * Get tenant limits.
-     */
+    /** Get tenant limits. */
     public TenantQuotaDto.LimitsResponse getLimits(UUID tenantId) {
         TenantQuota quota = getOrCreateQuota(tenantId);
         return toLimitsResponse(quota);
     }
 
-    /**
-     * Update tenant limits.
-     */
+    /** Update tenant limits. */
     @Transactional
-    public TenantQuotaDto.LimitsResponse updateLimits(UUID tenantId, TenantQuotaDto.UpdateLimitsRequest request) {
+    public TenantQuotaDto.LimitsResponse updateLimits(
+            UUID tenantId, TenantQuotaDto.UpdateLimitsRequest request) {
         log.info("Updating limits for tenant: {}", tenantId);
 
         TenantQuota quota = getOrCreateQuota(tenantId);
@@ -92,9 +86,7 @@ public class TenantQuotaService {
         return toLimitsResponse(quota);
     }
 
-    /**
-     * Get current usage for a tenant.
-     */
+    /** Get current usage for a tenant. */
     public TenantQuotaDto.UsageResponse getUsage(UUID tenantId) {
         TenantQuota quota = getOrCreateQuota(tenantId);
 
@@ -103,10 +95,11 @@ public class TenantQuotaService {
         int activeSse = getActiveSseConnections(tenantId);
         long eventsToday = getEventsIngestedToday(tenantId);
 
-        TenantQuotaDto.UsagePercentages percentages = TenantQuotaDto.UsagePercentages.calculate(
-                activeShipments, quota.getMaxActiveShipments(),
-                currentEps, quota.getMaxEventsPerSecond(),
-                activeSse, quota.getMaxSseConnections());
+        TenantQuotaDto.UsagePercentages percentages =
+                TenantQuotaDto.UsagePercentages.calculate(
+                        activeShipments, quota.getMaxActiveShipments(),
+                        currentEps, quota.getMaxEventsPerSecond(),
+                        activeSse, quota.getMaxSseConnections());
 
         // Update metrics gauge
         updateQuotaUsageMetric(tenantId, "shipments", percentages.shipmentsPercent());
@@ -124,35 +117,27 @@ public class TenantQuotaService {
                 Instant.now());
     }
 
-    /**
-     * Check if tenant can accept more events (rate limit check).
-     */
+    /** Check if tenant can accept more events (rate limit check). */
     public boolean canAcceptEvent(UUID tenantId) {
         TenantQuota quota = getOrCreateQuota(tenantId);
         int currentEps = getCurrentEventsPerSecond(tenantId);
         return currentEps < quota.getMaxEventsPerSecond();
     }
 
-    /**
-     * Check if tenant can open new SSE connection.
-     */
+    /** Check if tenant can open new SSE connection. */
     public boolean canOpenSseConnection(UUID tenantId) {
         TenantQuota quota = getOrCreateQuota(tenantId);
         int activeSse = getActiveSseConnections(tenantId);
         return activeSse < quota.getMaxSseConnections();
     }
 
-    /**
-     * Increment SSE connection count.
-     */
+    /** Increment SSE connection count. */
     public void incrementSseConnections(UUID tenantId) {
         String key = USAGE_KEY_PREFIX + tenantId + SSE_CONNECTIONS_KEY;
         redisTemplate.opsForValue().increment(key);
     }
 
-    /**
-     * Decrement SSE connection count.
-     */
+    /** Decrement SSE connection count. */
     public void decrementSseConnections(UUID tenantId) {
         String key = USAGE_KEY_PREFIX + tenantId + SSE_CONNECTIONS_KEY;
         Long current = redisTemplate.opsForValue().decrement(key);
@@ -161,9 +146,7 @@ public class TenantQuotaService {
         }
     }
 
-    /**
-     * Record an event ingestion.
-     */
+    /** Record an event ingestion. */
     public void recordEventIngested(UUID tenantId) {
         String todayKey = USAGE_KEY_PREFIX + tenantId + EVENTS_TODAY_KEY + LocalDate.now();
         redisTemplate.opsForValue().increment(todayKey);
@@ -175,17 +158,13 @@ public class TenantQuotaService {
         redisTemplate.expire(epsKey, Duration.ofSeconds(10));
     }
 
-    /**
-     * Update active shipments count.
-     */
+    /** Update active shipments count. */
     public void updateActiveShipments(UUID tenantId, int count) {
         String key = USAGE_KEY_PREFIX + tenantId + ACTIVE_SHIPMENTS_KEY;
         redisTemplate.opsForValue().set(key, String.valueOf(count));
     }
 
-    /**
-     * Create default quota for a new tenant.
-     */
+    /** Create default quota for a new tenant. */
     @Transactional
     public TenantQuota createDefaultQuota(UUID tenantId) {
         if (!tenantRepository.existsById(tenantId)) {
@@ -201,7 +180,8 @@ public class TenantQuotaService {
     // Private helper methods
 
     private TenantQuota getOrCreateQuota(UUID tenantId) {
-        return quotaRepository.findByTenantId(tenantId)
+        return quotaRepository
+                .findByTenantId(tenantId)
                 .orElseGet(() -> createDefaultQuota(tenantId));
     }
 
@@ -251,13 +231,15 @@ public class TenantQuotaService {
 
     private void updateQuotaUsageMetric(UUID tenantId, String resource, Double percentage) {
         String metricKey = tenantId + ":" + resource;
-        quotaUsageGauges.computeIfAbsent(UUID.nameUUIDFromBytes(metricKey.getBytes()), k -> {
-            Gauge.builder("tenant_quota_usage_percent", () -> percentage)
-                    .tag("tenant_id", tenantId.toString())
-                    .tag("resource", resource)
-                    .description("Percentage of quota used by tenant")
-                    .register(meterRegistry);
-            return percentage;
-        });
+        quotaUsageGauges.computeIfAbsent(
+                UUID.nameUUIDFromBytes(metricKey.getBytes()),
+                k -> {
+                    Gauge.builder("tenant_quota_usage_percent", () -> percentage)
+                            .tag("tenant_id", tenantId.toString())
+                            .tag("resource", resource)
+                            .description("Percentage of quota used by tenant")
+                            .register(meterRegistry);
+                    return percentage;
+                });
     }
 }

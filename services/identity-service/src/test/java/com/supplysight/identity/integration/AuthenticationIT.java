@@ -1,9 +1,11 @@
 package com.supplysight.identity.integration;
 
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
+
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.supplysight.identity.dto.AuthDto;
-import com.supplysight.identity.dto.TenantDto;
-import com.supplysight.identity.dto.UserDto;
 import com.supplysight.identity.entity.Tenant;
 import com.supplysight.identity.entity.User;
 import com.supplysight.identity.repository.TenantRepository;
@@ -11,6 +13,8 @@ import com.supplysight.identity.repository.UserRepository;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.security.Keys;
+import java.nio.charset.StandardCharsets;
+import java.util.Set;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -29,27 +33,19 @@ import org.testcontainers.containers.PostgreSQLContainer;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 
-import java.nio.charset.StandardCharsets;
-import java.util.Set;
-
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
-
-/**
- * Integration tests for authentication endpoints using Testcontainers.
- */
+/** Integration tests for authentication endpoints using Testcontainers. */
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 @AutoConfigureMockMvc
 @Testcontainers
 @Transactional
-class AuthenticationIntegrationTest {
+class AuthenticationIT {
 
     @Container
-    static PostgreSQLContainer<?> postgres = new PostgreSQLContainer<>("postgres:16-alpine")
-            .withDatabaseName("supplysight_test")
-            .withUsername("test")
-            .withPassword("test");
+    static PostgreSQLContainer<?> postgres =
+            new PostgreSQLContainer<>("postgres:16-alpine")
+                    .withDatabaseName("supplysight_test")
+                    .withUsername("test")
+                    .withPassword("test");
 
     @DynamicPropertySource
     static void configureProperties(DynamicPropertyRegistry registry) {
@@ -60,20 +56,15 @@ class AuthenticationIntegrationTest {
         registry.add("spring.jpa.hibernate.ddl-auto", () -> "validate");
     }
 
-    @Autowired
-    private MockMvc mockMvc;
+    @Autowired private MockMvc mockMvc;
 
-    @Autowired
-    private ObjectMapper objectMapper;
+    @Autowired private ObjectMapper objectMapper;
 
-    @Autowired
-    private TenantRepository tenantRepository;
+    @Autowired private TenantRepository tenantRepository;
 
-    @Autowired
-    private UserRepository userRepository;
+    @Autowired private UserRepository userRepository;
 
-    @Autowired
-    private PasswordEncoder passwordEncoder;
+    @Autowired private PasswordEncoder passwordEncoder;
 
     @Value("${jwt.secret}")
     private String jwtSecret;
@@ -105,21 +96,24 @@ class AuthenticationIntegrationTest {
     @Test
     @DisplayName("Should login successfully and return valid JWT")
     void login_Success() throws Exception {
-        AuthDto.LoginRequest request = new AuthDto.LoginRequest(
-                "user@integration.com", "password123"
-        );
+        AuthDto.LoginRequest request =
+                new AuthDto.LoginRequest("user@integration.com", "password123");
 
-        MvcResult result = mockMvc.perform(post("/api/v1/login")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(request)))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.success").value(true))
-                .andExpect(jsonPath("$.data.accessToken").isNotEmpty())
-                .andExpect(jsonPath("$.data.refreshToken").isNotEmpty())
-                .andExpect(jsonPath("$.data.tokenType").value("Bearer"))
-                .andExpect(jsonPath("$.data.user.email").value("user@integration.com"))
-                .andExpect(jsonPath("$.data.user.tenantId").value(testTenant.getId().toString()))
-                .andReturn();
+        MvcResult result =
+                mockMvc.perform(
+                                post("/api/v1/login")
+                                        .contentType(MediaType.APPLICATION_JSON)
+                                        .content(objectMapper.writeValueAsString(request)))
+                        .andExpect(status().isOk())
+                        .andExpect(jsonPath("$.success").value(true))
+                        .andExpect(jsonPath("$.data.accessToken").isNotEmpty())
+                        .andExpect(jsonPath("$.data.refreshToken").isNotEmpty())
+                        .andExpect(jsonPath("$.data.tokenType").value("Bearer"))
+                        .andExpect(jsonPath("$.data.user.email").value("user@integration.com"))
+                        .andExpect(
+                                jsonPath("$.data.user.tenantId")
+                                        .value(testTenant.getId().toString()))
+                        .andReturn();
 
         // Parse response and verify JWT claims
         String responseBody = result.getResponse().getContentAsString();
@@ -127,11 +121,12 @@ class AuthenticationIntegrationTest {
         String accessToken = response.get("data").get("accessToken").asText();
 
         // Decode and verify JWT
-        Claims claims = Jwts.parser()
-                .verifyWith(Keys.hmacShaKeyFor(jwtSecret.getBytes(StandardCharsets.UTF_8)))
-                .build()
-                .parseSignedClaims(accessToken)
-                .getPayload();
+        Claims claims =
+                Jwts.parser()
+                        .verifyWith(Keys.hmacShaKeyFor(jwtSecret.getBytes(StandardCharsets.UTF_8)))
+                        .build()
+                        .parseSignedClaims(accessToken)
+                        .getPayload();
 
         assertThat(claims.getSubject()).isEqualTo(testUser.getId().toString());
         assertThat(claims.get("tenantId", String.class)).isEqualTo(testTenant.getId().toString());
@@ -141,13 +136,13 @@ class AuthenticationIntegrationTest {
     @Test
     @DisplayName("Should reject login with wrong password")
     void login_WrongPassword() throws Exception {
-        AuthDto.LoginRequest request = new AuthDto.LoginRequest(
-                "user@integration.com", "wrongpassword"
-        );
+        AuthDto.LoginRequest request =
+                new AuthDto.LoginRequest("user@integration.com", "wrongpassword");
 
-        mockMvc.perform(post("/api/v1/login")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(request)))
+        mockMvc.perform(
+                        post("/api/v1/login")
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isUnauthorized())
                 .andExpect(jsonPath("$.success").value(false))
                 .andExpect(jsonPath("$.error.code").value("UNAUTHORIZED"));
@@ -156,13 +151,13 @@ class AuthenticationIntegrationTest {
     @Test
     @DisplayName("Should reject login with non-existent email")
     void login_NonExistentEmail() throws Exception {
-        AuthDto.LoginRequest request = new AuthDto.LoginRequest(
-                "nonexistent@example.com", "password123"
-        );
+        AuthDto.LoginRequest request =
+                new AuthDto.LoginRequest("nonexistent@example.com", "password123");
 
-        mockMvc.perform(post("/api/v1/login")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(request)))
+        mockMvc.perform(
+                        post("/api/v1/login")
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isUnauthorized())
                 .andExpect(jsonPath("$.success").value(false));
     }
@@ -173,8 +168,7 @@ class AuthenticationIntegrationTest {
         // First login to get token
         String accessToken = loginAndGetToken();
 
-        mockMvc.perform(get("/api/v1/me")
-                        .header("Authorization", "Bearer " + accessToken))
+        mockMvc.perform(get("/api/v1/me").header("Authorization", "Bearer " + accessToken))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.success").value(true))
                 .andExpect(jsonPath("$.data.email").value("user@integration.com"))
@@ -185,15 +179,13 @@ class AuthenticationIntegrationTest {
     @Test
     @DisplayName("Should reject request without token")
     void getCurrentUser_NoToken() throws Exception {
-        mockMvc.perform(get("/api/v1/me"))
-                .andExpect(status().isUnauthorized());
+        mockMvc.perform(get("/api/v1/me")).andExpect(status().isUnauthorized());
     }
 
     @Test
     @DisplayName("Should reject request with invalid token")
     void getCurrentUser_InvalidToken() throws Exception {
-        mockMvc.perform(get("/api/v1/me")
-                        .header("Authorization", "Bearer invalid.token.here"))
+        mockMvc.perform(get("/api/v1/me").header("Authorization", "Bearer invalid.token.here"))
                 .andExpect(status().isUnauthorized());
     }
 
@@ -201,15 +193,16 @@ class AuthenticationIntegrationTest {
     @DisplayName("Should refresh token successfully")
     void refreshToken_Success() throws Exception {
         // First login to get tokens
-        AuthDto.LoginRequest loginRequest = new AuthDto.LoginRequest(
-                "user@integration.com", "password123"
-        );
+        AuthDto.LoginRequest loginRequest =
+                new AuthDto.LoginRequest("user@integration.com", "password123");
 
-        MvcResult loginResult = mockMvc.perform(post("/api/v1/login")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(loginRequest)))
-                .andExpect(status().isOk())
-                .andReturn();
+        MvcResult loginResult =
+                mockMvc.perform(
+                                post("/api/v1/login")
+                                        .contentType(MediaType.APPLICATION_JSON)
+                                        .content(objectMapper.writeValueAsString(loginRequest)))
+                        .andExpect(status().isOk())
+                        .andReturn();
 
         var loginResponse = objectMapper.readTree(loginResult.getResponse().getContentAsString());
         String refreshToken = loginResponse.get("data").get("refreshToken").asText();
@@ -217,9 +210,10 @@ class AuthenticationIntegrationTest {
         // Refresh token
         AuthDto.RefreshTokenRequest refreshRequest = new AuthDto.RefreshTokenRequest(refreshToken);
 
-        mockMvc.perform(post("/api/v1/refresh")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(refreshRequest)))
+        mockMvc.perform(
+                        post("/api/v1/refresh")
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content(objectMapper.writeValueAsString(refreshRequest)))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.success").value(true))
                 .andExpect(jsonPath("$.data.accessToken").isNotEmpty())
@@ -230,15 +224,16 @@ class AuthenticationIntegrationTest {
     @DisplayName("Should logout successfully")
     void logout_Success() throws Exception {
         // Login first
-        AuthDto.LoginRequest loginRequest = new AuthDto.LoginRequest(
-                "user@integration.com", "password123"
-        );
+        AuthDto.LoginRequest loginRequest =
+                new AuthDto.LoginRequest("user@integration.com", "password123");
 
-        MvcResult loginResult = mockMvc.perform(post("/api/v1/login")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(loginRequest)))
-                .andExpect(status().isOk())
-                .andReturn();
+        MvcResult loginResult =
+                mockMvc.perform(
+                                post("/api/v1/login")
+                                        .contentType(MediaType.APPLICATION_JSON)
+                                        .content(objectMapper.writeValueAsString(loginRequest)))
+                        .andExpect(status().isOk())
+                        .andReturn();
 
         var loginResponse = objectMapper.readTree(loginResult.getResponse().getContentAsString());
         String accessToken = loginResponse.get("data").get("accessToken").asText();
@@ -247,32 +242,35 @@ class AuthenticationIntegrationTest {
         // Logout
         AuthDto.LogoutRequest logoutRequest = new AuthDto.LogoutRequest(refreshToken);
 
-        mockMvc.perform(post("/api/v1/logout")
-                        .header("Authorization", "Bearer " + accessToken)
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(logoutRequest)))
+        mockMvc.perform(
+                        post("/api/v1/logout")
+                                .header("Authorization", "Bearer " + accessToken)
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content(objectMapper.writeValueAsString(logoutRequest)))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.success").value(true));
 
         // Verify refresh token is revoked
         AuthDto.RefreshTokenRequest refreshRequest = new AuthDto.RefreshTokenRequest(refreshToken);
 
-        mockMvc.perform(post("/api/v1/refresh")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(refreshRequest)))
+        mockMvc.perform(
+                        post("/api/v1/refresh")
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content(objectMapper.writeValueAsString(refreshRequest)))
                 .andExpect(status().isUnauthorized());
     }
 
     private String loginAndGetToken() throws Exception {
-        AuthDto.LoginRequest request = new AuthDto.LoginRequest(
-                "user@integration.com", "password123"
-        );
+        AuthDto.LoginRequest request =
+                new AuthDto.LoginRequest("user@integration.com", "password123");
 
-        MvcResult result = mockMvc.perform(post("/api/v1/login")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(request)))
-                .andExpect(status().isOk())
-                .andReturn();
+        MvcResult result =
+                mockMvc.perform(
+                                post("/api/v1/login")
+                                        .contentType(MediaType.APPLICATION_JSON)
+                                        .content(objectMapper.writeValueAsString(request)))
+                        .andExpect(status().isOk())
+                        .andReturn();
 
         var response = objectMapper.readTree(result.getResponse().getContentAsString());
         return response.get("data").get("accessToken").asText();

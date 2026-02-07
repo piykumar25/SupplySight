@@ -1,13 +1,10 @@
 package com.supplysight.identity.entity;
 
 import jakarta.persistence.*;
-
 import java.time.Instant;
 import java.util.UUID;
 
-/**
- * Refresh token entity for JWT token rotation.
- */
+/** Refresh token entity for JWT token rotation. */
 @Entity
 @Table(name = "refresh_tokens", schema = "identity")
 public class RefreshToken {

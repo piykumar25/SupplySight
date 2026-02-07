@@ -11,6 +11,12 @@ import com.supplysight.prediction.repository.AlertRepository;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import java.time.Instant;
+import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.data.domain.Page;
@@ -23,16 +29,7 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
-import java.time.Instant;
-import java.util.*;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.CopyOnWriteArrayList;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-
-/**
- * REST controller for alert management with real-time SSE streaming.
- */
+/** REST controller for alert management with real-time SSE streaming. */
 @RestController
 @RequestMapping("/api/v1/alerts")
 @Tag(name = "Alerts", description = "Alert management and real-time streaming")
@@ -42,7 +39,8 @@ public class AlertController {
     private static final Logger log = LoggerFactory.getLogger(AlertController.class);
 
     private final AlertRepository alertRepository;
-    private final com.supplysight.prediction.service.SseConnectionLimitService sseConnectionLimitService;
+    private final com.supplysight.prediction.service.SseConnectionLimitService
+            sseConnectionLimitService;
 
     // SSE emitters by tenant
     private final Map<UUID, List<SseEmitter>> sseEmitters = new ConcurrentHashMap<>();
@@ -50,7 +48,8 @@ public class AlertController {
 
     public AlertController(
             AlertRepository alertRepository,
-            com.supplysight.prediction.service.SseConnectionLimitService sseConnectionLimitService) {
+            com.supplysight.prediction.service.SseConnectionLimitService
+                    sseConnectionLimitService) {
         this.alertRepository = alertRepository;
         this.sseConnectionLimitService = sseConnectionLimitService;
     }
@@ -58,21 +57,32 @@ public class AlertController {
     // ==================== LIST & QUERY ENDPOINTS ====================
 
     @GetMapping
-    @Operation(summary = "List Alerts", description = "Get paginated list of alerts with optional filters")
+    @Operation(
+            summary = "List Alerts",
+            description = "Get paginated list of alerts with optional filters")
     public ResponseEntity<ApiResponse<PageResponse<AlertSummary>>> listAlerts(
-            @Parameter(description = "Filter by severity") @RequestParam(required = false) Severity severity,
-            @Parameter(description = "Show only unacknowledged") @RequestParam(defaultValue = "false") boolean unacknowledgedOnly,
-            @Parameter(description = "Show only unresolved") @RequestParam(defaultValue = "false") boolean unresolvedOnly,
+            @Parameter(description = "Filter by severity") @RequestParam(required = false)
+                    Severity severity,
+            @Parameter(description = "Show only unacknowledged")
+                    @RequestParam(defaultValue = "false")
+                    boolean unacknowledgedOnly,
+            @Parameter(description = "Show only unresolved") @RequestParam(defaultValue = "false")
+                    boolean unresolvedOnly,
             @Parameter(description = "Search query") @RequestParam(required = false) String search,
             @Parameter(description = "From date") @RequestParam(required = false) Instant fromDate,
             @Parameter(description = "To date") @RequestParam(required = false) Instant toDate,
-            @Parameter(description = "Sort field") @RequestParam(defaultValue = "createdAt") String sortBy,
-            @Parameter(description = "Sort direction") @RequestParam(defaultValue = "desc") String sortDir,
+            @Parameter(description = "Sort field") @RequestParam(defaultValue = "createdAt")
+                    String sortBy,
+            @Parameter(description = "Sort direction") @RequestParam(defaultValue = "desc")
+                    String sortDir,
             @Parameter(description = "Page number") @RequestParam(defaultValue = "0") int page,
             @Parameter(description = "Page size") @RequestParam(defaultValue = "20") int size) {
         UUID tenantId = TenantContext.getTenantId();
 
-        Sort sort = Sort.by(sortDir.equalsIgnoreCase("asc") ? Sort.Direction.ASC : Sort.Direction.DESC, sortBy);
+        Sort sort =
+                Sort.by(
+                        sortDir.equalsIgnoreCase("asc") ? Sort.Direction.ASC : Sort.Direction.DESC,
+                        sortBy);
         PageRequest pageRequest = PageRequest.of(page, Math.min(size, 100), sort);
 
         Page<Alert> alertPage;
@@ -88,11 +98,12 @@ public class AlertController {
             alertPage = alertRepository.findByTenantId(tenantId, pageRequest);
         }
 
-        PageResponse<AlertSummary> response = PageResponse.of(
-                alertPage.getContent().stream().map(this::toAlertSummary).toList(),
-                alertPage.getNumber(),
-                alertPage.getSize(),
-                alertPage.getTotalElements());
+        PageResponse<AlertSummary> response =
+                PageResponse.of(
+                        alertPage.getContent().stream().map(this::toAlertSummary).toList(),
+                        alertPage.getNumber(),
+                        alertPage.getSize(),
+                        alertPage.getTotalElements());
         return ResponseEntity.ok(ApiResponse.success(response));
     }
 
@@ -102,27 +113,35 @@ public class AlertController {
             @Parameter(description = "Alert ID") @PathVariable UUID alertId) {
         UUID tenantId = TenantContext.getTenantId();
 
-        Alert alert = alertRepository.findById(alertId)
-                .filter(a -> a.getTenantId().equals(tenantId))
-                .orElseThrow(() -> new ResourceNotFoundException("Alert", alertId));
+        Alert alert =
+                alertRepository
+                        .findById(alertId)
+                        .filter(a -> a.getTenantId().equals(tenantId))
+                        .orElseThrow(() -> new ResourceNotFoundException("Alert", alertId));
 
         return ResponseEntity.ok(ApiResponse.success(toAlertResponse(alert)));
     }
 
     @GetMapping("/shipment/{shipmentId}")
-    @Operation(summary = "Get Shipment Alerts", description = "Get all alerts for a specific shipment")
+    @Operation(
+            summary = "Get Shipment Alerts",
+            description = "Get all alerts for a specific shipment")
     public ResponseEntity<ApiResponse<List<AlertSummary>>> getShipmentAlerts(
             @Parameter(description = "Shipment ID") @PathVariable UUID shipmentId) {
         UUID tenantId = TenantContext.getTenantId();
 
-        List<Alert> alerts = alertRepository.findByTenantIdAndShipmentIdOrderByCreatedAtDesc(tenantId, shipmentId);
+        List<Alert> alerts =
+                alertRepository.findByTenantIdAndShipmentIdOrderByCreatedAtDesc(
+                        tenantId, shipmentId);
 
-        return ResponseEntity.ok(ApiResponse.success(
-                alerts.stream().map(this::toAlertSummary).toList()));
+        return ResponseEntity.ok(
+                ApiResponse.success(alerts.stream().map(this::toAlertSummary).toList()));
     }
 
     @GetMapping("/count")
-    @Operation(summary = "Get Alert Counts", description = "Get total, unacknowledged, and unresolved alert counts")
+    @Operation(
+            summary = "Get Alert Counts",
+            description = "Get total, unacknowledged, and unresolved alert counts")
     public ResponseEntity<ApiResponse<AlertCount>> getAlertCount() {
         UUID tenantId = TenantContext.getTenantId();
 
@@ -130,7 +149,8 @@ public class AlertController {
         long unacknowledged = alertRepository.countByTenantIdAndAcknowledgedFalse(tenantId);
         long unresolved = alertRepository.countByTenantIdAndResolvedFalse(tenantId);
 
-        return ResponseEntity.ok(ApiResponse.success(new AlertCount(total, unacknowledged, unresolved)));
+        return ResponseEntity.ok(
+                ApiResponse.success(new AlertCount(total, unacknowledged, unresolved)));
     }
 
     // ==================== ACTION ENDPOINTS ====================
@@ -144,9 +164,11 @@ public class AlertController {
         UUID tenantId = TenantContext.getTenantId();
         UUID userId = TenantContext.getUserId();
 
-        Alert alert = alertRepository.findById(alertId)
-                .filter(a -> a.getTenantId().equals(tenantId))
-                .orElseThrow(() -> new ResourceNotFoundException("Alert", alertId));
+        Alert alert =
+                alertRepository
+                        .findById(alertId)
+                        .filter(a -> a.getTenantId().equals(tenantId))
+                        .orElseThrow(() -> new ResourceNotFoundException("Alert", alertId));
 
         alert.acknowledge(userId);
         alert = alertRepository.save(alert);
@@ -167,9 +189,11 @@ public class AlertController {
         UUID tenantId = TenantContext.getTenantId();
         UUID userId = TenantContext.getUserId();
 
-        Alert alert = alertRepository.findById(alertId)
-                .filter(a -> a.getTenantId().equals(tenantId))
-                .orElseThrow(() -> new ResourceNotFoundException("Alert", alertId));
+        Alert alert =
+                alertRepository
+                        .findById(alertId)
+                        .filter(a -> a.getTenantId().equals(tenantId))
+                        .orElseThrow(() -> new ResourceNotFoundException("Alert", alertId));
 
         if (request != null && request.comment() != null) {
             alert.resolveWithComment(userId, request.comment());
@@ -200,9 +224,11 @@ public class AlertController {
 
         for (UUID alertId : request.alertIds()) {
             try {
-                Alert alert = alertRepository.findById(alertId)
-                        .filter(a -> a.getTenantId().equals(tenantId))
-                        .orElse(null);
+                Alert alert =
+                        alertRepository
+                                .findById(alertId)
+                                .filter(a -> a.getTenantId().equals(tenantId))
+                                .orElse(null);
 
                 if (alert != null && !alert.isAcknowledged()) {
                     alert.acknowledge(userId);
@@ -220,9 +246,14 @@ public class AlertController {
             }
         }
 
-        log.info("Bulk acknowledge: {} success, {} failed by user {}", successCount, failedIds.size(), userId);
-        return ResponseEntity.ok(ApiResponse.success(
-                new BulkActionResponse(successCount, failedIds.size(), failedIds)));
+        log.info(
+                "Bulk acknowledge: {} success, {} failed by user {}",
+                successCount,
+                failedIds.size(),
+                userId);
+        return ResponseEntity.ok(
+                ApiResponse.success(
+                        new BulkActionResponse(successCount, failedIds.size(), failedIds)));
     }
 
     @PostMapping("/bulk/resolve")
@@ -238,9 +269,11 @@ public class AlertController {
 
         for (UUID alertId : request.alertIds()) {
             try {
-                Alert alert = alertRepository.findById(alertId)
-                        .filter(a -> a.getTenantId().equals(tenantId))
-                        .orElse(null);
+                Alert alert =
+                        alertRepository
+                                .findById(alertId)
+                                .filter(a -> a.getTenantId().equals(tenantId))
+                                .orElse(null);
 
                 if (alert != null && !alert.isResolved()) {
                     if (request.comment() != null) {
@@ -262,9 +295,14 @@ public class AlertController {
             }
         }
 
-        log.info("Bulk resolve: {} success, {} failed by user {}", successCount, failedIds.size(), userId);
-        return ResponseEntity.ok(ApiResponse.success(
-                new BulkActionResponse(successCount, failedIds.size(), failedIds)));
+        log.info(
+                "Bulk resolve: {} success, {} failed by user {}",
+                successCount,
+                failedIds.size(),
+                userId);
+        return ResponseEntity.ok(
+                ApiResponse.success(
+                        new BulkActionResponse(successCount, failedIds.size(), failedIds)));
     }
 
     // ==================== SSE STREAMING ====================
@@ -280,7 +318,8 @@ public class AlertController {
             return ResponseEntity.status(429)
                     .header("Retry-After", "30")
                     .contentType(org.springframework.http.MediaType.APPLICATION_JSON)
-                    .body("{\"success\":false,\"error\":{\"code\":\"SSE_LIMIT_EXCEEDED\",\"message\":\"Maximum SSE connections reached. Please close existing connections or try again later.\"}}");
+                    .body(
+                            "{\"success\":false,\"error\":{\"code\":\"SSE_LIMIT_EXCEEDED\",\"message\":\"Maximum SSE connections reached. Please close existing connections or try again later.\"}}");
         }
 
         // Track connection opened
@@ -292,25 +331,32 @@ public class AlertController {
         sseEmitters.computeIfAbsent(tenantId, k -> new CopyOnWriteArrayList<>()).add(emitter);
 
         // Handle completion and timeout
-        emitter.onCompletion(() -> {
-            removeEmitter(tenantId, emitter);
-            sseConnectionLimitService.trackConnectionClosed(tenantId);
-        });
-        emitter.onTimeout(() -> {
-            removeEmitter(tenantId, emitter);
-            sseConnectionLimitService.trackConnectionClosed(tenantId);
-        });
-        emitter.onError(e -> {
-            log.debug("SSE error for tenant {}: {}", tenantId, e.getMessage());
-            removeEmitter(tenantId, emitter);
-            sseConnectionLimitService.trackConnectionClosed(tenantId);
-        });
+        emitter.onCompletion(
+                () -> {
+                    removeEmitter(tenantId, emitter);
+                    sseConnectionLimitService.trackConnectionClosed(tenantId);
+                });
+        emitter.onTimeout(
+                () -> {
+                    removeEmitter(tenantId, emitter);
+                    sseConnectionLimitService.trackConnectionClosed(tenantId);
+                });
+        emitter.onError(
+                e -> {
+                    log.debug("SSE error for tenant {}: {}", tenantId, e.getMessage());
+                    removeEmitter(tenantId, emitter);
+                    sseConnectionLimitService.trackConnectionClosed(tenantId);
+                });
 
         // Send initial heartbeat
         try {
-            emitter.send(SseEmitter.event()
-                    .name("connected")
-                    .data("{\"status\":\"connected\",\"timestamp\":\"" + Instant.now() + "\"}"));
+            emitter.send(
+                    SseEmitter.event()
+                            .name("connected")
+                            .data(
+                                    "{\"status\":\"connected\",\"timestamp\":\""
+                                            + Instant.now()
+                                            + "\"}"));
         } catch (Exception e) {
             log.debug("Failed to send SSE connect: {}", e.getMessage());
             sseConnectionLimitService.trackConnectionClosed(tenantId);
@@ -340,28 +386,25 @@ public class AlertController {
 
         AlertEvent event = new AlertEvent(eventType, toAlertSummary(alert), Instant.now());
 
-        sseExecutor.execute(() -> {
-            List<SseEmitter> deadEmitters = new ArrayList<>();
+        sseExecutor.execute(
+                () -> {
+                    List<SseEmitter> deadEmitters = new ArrayList<>();
 
-            for (SseEmitter emitter : emitters) {
-                try {
-                    emitter.send(SseEmitter.event()
-                            .name(eventType)
-                            .data(event));
-                } catch (Exception e) {
-                    log.debug("Failed to send SSE event to client: {}", e.getMessage());
-                    deadEmitters.add(emitter);
-                }
-            }
+                    for (SseEmitter emitter : emitters) {
+                        try {
+                            emitter.send(SseEmitter.event().name(eventType).data(event));
+                        } catch (Exception e) {
+                            log.debug("Failed to send SSE event to client: {}", e.getMessage());
+                            deadEmitters.add(emitter);
+                        }
+                    }
 
-            // Cleanup dead emitters
-            deadEmitters.forEach(e -> removeEmitter(tenantId, e));
-        });
+                    // Cleanup dead emitters
+                    deadEmitters.forEach(e -> removeEmitter(tenantId, e));
+                });
     }
 
-    /**
-     * Broadcast a new alert event (called from AlertService).
-     */
+    /** Broadcast a new alert event (called from AlertService). */
     public void broadcastNewAlert(Alert alert) {
         broadcastAlertEvent(alert.getTenantId(), "alert:new", alert);
     }

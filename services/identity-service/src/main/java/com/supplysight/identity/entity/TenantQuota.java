@@ -2,12 +2,11 @@ package com.supplysight.identity.entity;
 
 import com.supplysight.common.entity.BaseEntity;
 import jakarta.persistence.*;
-
 import java.util.UUID;
 
 /**
- * Entity representing tenant-level quotas and limits.
- * Defines the maximum resources a tenant can consume.
+ * Entity representing tenant-level quotas and limits. Defines the maximum resources a tenant can
+ * consume.
  */
 @Entity
 @Table(name = "tenant_quotas", schema = "identity")
@@ -100,9 +99,7 @@ public class TenantQuota extends BaseEntity {
         this.predictionRetentionDays = predictionRetentionDays;
     }
 
-    /**
-     * Create default quota for a new tenant.
-     */
+    /** Create default quota for a new tenant. */
     public static TenantQuota createDefault(UUID tenantId) {
         TenantQuota quota = new TenantQuota(tenantId);
         // Defaults are already set in field initializers

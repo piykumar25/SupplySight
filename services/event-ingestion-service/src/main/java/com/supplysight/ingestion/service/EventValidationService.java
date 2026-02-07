@@ -3,46 +3,43 @@ package com.supplysight.ingestion.service;
 import com.supplysight.common.event.TrackingEvent;
 import com.supplysight.common.exception.ValidationException;
 import com.supplysight.ingestion.dto.EventIngestionDto.IngestRequest;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.stereotype.Service;
-
 import java.time.Duration;
 import java.time.Instant;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.stereotype.Service;
 
-/**
- * Service for validating tracking events before ingestion.
- */
+/** Service for validating tracking events before ingestion. */
 @Service
 public class EventValidationService {
 
     private static final Logger log = LoggerFactory.getLogger(EventValidationService.class);
 
-    private static final Set<String> VALID_EVENT_TYPES = Set.of(
-            TrackingEvent.EventTypes.CREATED,
-            TrackingEvent.EventTypes.PICKED_UP,
-            TrackingEvent.EventTypes.IN_TRANSIT,
-            TrackingEvent.EventTypes.AT_HUB,
-            TrackingEvent.EventTypes.OUT_FOR_DELIVERY,
-            TrackingEvent.EventTypes.DELIVERED,
-            TrackingEvent.EventTypes.DELAYED,
-            TrackingEvent.EventTypes.EXCEPTION,
-            TrackingEvent.EventTypes.RETURNED,
-            TrackingEvent.EventTypes.CANCELLED
-    );
+    private static final Set<String> VALID_EVENT_TYPES =
+            Set.of(
+                    TrackingEvent.EventTypes.CREATED,
+                    TrackingEvent.EventTypes.PICKED_UP,
+                    TrackingEvent.EventTypes.IN_TRANSIT,
+                    TrackingEvent.EventTypes.AT_HUB,
+                    TrackingEvent.EventTypes.OUT_FOR_DELIVERY,
+                    TrackingEvent.EventTypes.DELIVERED,
+                    TrackingEvent.EventTypes.DELAYED,
+                    TrackingEvent.EventTypes.EXCEPTION,
+                    TrackingEvent.EventTypes.RETURNED,
+                    TrackingEvent.EventTypes.CANCELLED);
 
-    private static final Set<String> VALID_SOURCES = Set.of(
-            TrackingEvent.EventSources.GPS_DEVICE,
-            TrackingEvent.EventSources.SCANNER,
-            TrackingEvent.EventSources.PARTNER_WEBHOOK,
-            TrackingEvent.EventSources.MANUAL_ENTRY,
-            TrackingEvent.EventSources.IOT_SENSOR,
-            TrackingEvent.EventSources.SYSTEM
-    );
+    private static final Set<String> VALID_SOURCES =
+            Set.of(
+                    TrackingEvent.EventSources.GPS_DEVICE,
+                    TrackingEvent.EventSources.SCANNER,
+                    TrackingEvent.EventSources.PARTNER_WEBHOOK,
+                    TrackingEvent.EventSources.MANUAL_ENTRY,
+                    TrackingEvent.EventSources.IOT_SENSOR,
+                    TrackingEvent.EventSources.SYSTEM);
 
     @Value("${ingestion.late-arrival-tolerance-hours:72}")
     private int lateArrivalToleranceHours;
@@ -52,6 +49,7 @@ public class EventValidationService {
 
     /**
      * Validate an incoming event.
+     *
      * @throws ValidationException if validation fails
      */
     public void validateEvent(IngestRequest event) {
@@ -79,12 +77,17 @@ public class EventValidationService {
 
         // Return early if required fields are missing
         if (!errors.isEmpty()) {
-            throw new ValidationException("Event validation failed", Map.of("errors", String.join(", ", errors)));
+            throw new ValidationException(
+                    "Event validation failed", Map.of("errors", String.join(", ", errors)));
         }
 
         // Event type validation
         if (!VALID_EVENT_TYPES.contains(event.eventType())) {
-            errors.add("Invalid eventType: " + event.eventType() + ". Valid types: " + VALID_EVENT_TYPES);
+            errors.add(
+                    "Invalid eventType: "
+                            + event.eventType()
+                            + ". Valid types: "
+                            + VALID_EVENT_TYPES);
         }
 
         // Source validation
@@ -107,7 +110,8 @@ public class EventValidationService {
 
         if (!errors.isEmpty()) {
             log.warn("Event validation failed for {}: {}", event.eventId(), errors);
-            throw new ValidationException("Event validation failed", Map.of("errors", String.join(", ", errors)));
+            throw new ValidationException(
+                    "Event validation failed", Map.of("errors", String.join(", ", errors)));
         }
     }
 
@@ -127,7 +131,8 @@ public class EventValidationService {
         }
     }
 
-    private void validateLocation(com.supplysight.ingestion.dto.EventIngestionDto.Location location, Set<String> errors) {
+    private void validateLocation(
+            com.supplysight.ingestion.dto.EventIngestionDto.Location location, Set<String> errors) {
         if (location.lat() != null) {
             if (location.lat() < -90 || location.lat() > 90) {
                 errors.add("Invalid latitude: must be between -90 and 90");
@@ -139,8 +144,8 @@ public class EventValidationService {
             }
         }
         // If one coordinate is provided, the other should be too
-        if ((location.lat() != null && location.lon() == null) || 
-            (location.lat() == null && location.lon() != null)) {
+        if ((location.lat() != null && location.lon() == null)
+                || (location.lat() == null && location.lon() != null)) {
             errors.add("Both latitude and longitude must be provided together");
         }
     }

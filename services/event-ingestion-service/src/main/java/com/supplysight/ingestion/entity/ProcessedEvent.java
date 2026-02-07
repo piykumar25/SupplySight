@@ -1,13 +1,10 @@
 package com.supplysight.ingestion.entity;
 
 import jakarta.persistence.*;
-
 import java.time.Instant;
 import java.util.UUID;
 
-/**
- * Tracks processed event IDs for idempotency/deduplication.
- */
+/** Tracks processed event IDs for idempotency/deduplication. */
 @Entity
 @Table(name = "processed_events", schema = "tracking")
 public class ProcessedEvent {

@@ -1,8 +1,17 @@
 package com.supplysight.gateway.filter;
 
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.*;
+
+import com.supplysight.gateway.config.GatewayAuthConfig;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.security.Keys;
-import com.supplysight.gateway.config.GatewayAuthConfig;
+import java.nio.charset.StandardCharsets;
+import java.time.Instant;
+import java.time.temporal.ChronoUnit;
+import java.util.*;
+import javax.crypto.SecretKey;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.cloud.gateway.filter.GatewayFilterChain;
@@ -12,16 +21,6 @@ import org.springframework.mock.http.server.reactive.MockServerHttpRequest;
 import org.springframework.mock.web.server.MockServerWebExchange;
 import reactor.core.publisher.Mono;
 import reactor.test.StepVerifier;
-
-import javax.crypto.SecretKey;
-import java.nio.charset.StandardCharsets;
-import java.time.Instant;
-import java.time.temporal.ChronoUnit;
-import java.util.*;
-
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.*;
 
 class JwtAuthenticationFilterTest {
 
@@ -45,9 +44,7 @@ class JwtAuthenticationFilterTest {
     @Test
     void shouldAllowPublicPaths() {
         // Given
-        MockServerHttpRequest request = MockServerHttpRequest
-                .get("/api/v1/login")
-                .build();
+        MockServerHttpRequest request = MockServerHttpRequest.get("/api/v1/login").build();
         MockServerWebExchange exchange = MockServerWebExchange.from(request);
 
         // When
@@ -61,9 +58,7 @@ class JwtAuthenticationFilterTest {
     @Test
     void shouldRejectRequestWithoutToken() {
         // Given
-        MockServerHttpRequest request = MockServerHttpRequest
-                .get("/api/v1/shipments")
-                .build();
+        MockServerHttpRequest request = MockServerHttpRequest.get("/api/v1/shipments").build();
         MockServerWebExchange exchange = MockServerWebExchange.from(request);
 
         // When
@@ -77,10 +72,10 @@ class JwtAuthenticationFilterTest {
     @Test
     void shouldRejectRequestWithInvalidToken() {
         // Given
-        MockServerHttpRequest request = MockServerHttpRequest
-                .get("/api/v1/shipments")
-                .header(HttpHeaders.AUTHORIZATION, "Bearer invalid.token.here")
-                .build();
+        MockServerHttpRequest request =
+                MockServerHttpRequest.get("/api/v1/shipments")
+                        .header(HttpHeaders.AUTHORIZATION, "Bearer invalid.token.here")
+                        .build();
         MockServerWebExchange exchange = MockServerWebExchange.from(request);
 
         // When
@@ -98,10 +93,10 @@ class JwtAuthenticationFilterTest {
         UUID tenantId = UUID.randomUUID();
         String token = generateValidToken(userId, tenantId);
 
-        MockServerHttpRequest request = MockServerHttpRequest
-                .get("/api/v1/shipments")
-                .header(HttpHeaders.AUTHORIZATION, "Bearer " + token)
-                .build();
+        MockServerHttpRequest request =
+                MockServerHttpRequest.get("/api/v1/shipments")
+                        .header(HttpHeaders.AUTHORIZATION, "Bearer " + token)
+                        .build();
         MockServerWebExchange exchange = MockServerWebExchange.from(request);
 
         // When
@@ -119,10 +114,10 @@ class JwtAuthenticationFilterTest {
         UUID tenantId = UUID.randomUUID();
         String token = generateExpiredToken(userId, tenantId);
 
-        MockServerHttpRequest request = MockServerHttpRequest
-                .get("/api/v1/shipments")
-                .header(HttpHeaders.AUTHORIZATION, "Bearer " + token)
-                .build();
+        MockServerHttpRequest request =
+                MockServerHttpRequest.get("/api/v1/shipments")
+                        .header(HttpHeaders.AUTHORIZATION, "Bearer " + token)
+                        .build();
         MockServerWebExchange exchange = MockServerWebExchange.from(request);
 
         // When

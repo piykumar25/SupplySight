@@ -1,17 +1,16 @@
 package com.supplysight.audit.entity;
 
 import jakarta.persistence.*;
-import lombok.*;
-
 import java.time.Instant;
 import java.time.LocalDate;
 import java.util.UUID;
+import lombok.*;
 
-/**
- * Pre-aggregated audit statistics for reporting.
- */
+/** Pre-aggregated audit statistics for reporting. */
 @Entity
-@Table(name = "audit_statistics", schema = "audit",
+@Table(
+        name = "audit_statistics",
+        schema = "audit",
         uniqueConstraints = @UniqueConstraint(columnNames = {"tenant_id", "stat_date", "action"}))
 @Getter
 @Setter

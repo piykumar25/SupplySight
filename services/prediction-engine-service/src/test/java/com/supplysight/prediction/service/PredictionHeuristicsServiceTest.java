@@ -1,23 +1,20 @@
 package com.supplysight.prediction.service;
 
+import static org.assertj.core.api.Assertions.assertThat;
+
 import com.supplysight.common.event.TrackingEvent;
 import com.supplysight.prediction.entity.ShipmentPrediction.DelayRisk;
 import com.supplysight.prediction.service.PredictionHeuristicsService.PredictionContext;
 import com.supplysight.prediction.service.PredictionHeuristicsService.PredictionResult;
+import java.time.Instant;
+import java.util.Map;
+import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.test.util.ReflectionTestUtils;
 
-import java.time.Instant;
-import java.util.Map;
-import java.util.UUID;
-
-import static org.assertj.core.api.Assertions.assertThat;
-
-/**
- * Unit tests for PredictionHeuristicsService.
- */
+/** Unit tests for PredictionHeuristicsService. */
 class PredictionHeuristicsServiceTest {
 
     private PredictionHeuristicsService heuristicsService;
@@ -84,7 +81,8 @@ class PredictionHeuristicsServiceTest {
     @DisplayName("Should calculate ETA when destination is known")
     void computePrediction_WithDestination_CalculatesEta() {
         // Given
-        TrackingEvent event = createEventWithLocation("IN_TRANSIT", 12.9716, 77.5946, Map.of("speedKmph", 50));
+        TrackingEvent event =
+                createEventWithLocation("IN_TRANSIT", 12.9716, 77.5946, Map.of("speedKmph", 50));
         // Destination is about 100km away
         PredictionContext context = new PredictionContext(event, null, 13.9, 77.5946, null, 1);
 
@@ -105,12 +103,20 @@ class PredictionHeuristicsServiceTest {
         Instant tenHoursAgo = now.minusSeconds(10 * 3600);
 
         TrackingEvent currentEvent = createEvent("IN_TRANSIT", null);
-        TrackingEvent previousEvent = new TrackingEvent(
-                UUID.randomUUID(), UUID.randomUUID(), UUID.randomUUID(),
-                "AT_HUB", tenHoursAgo, "SCANNER", null, null, null
-        );
+        TrackingEvent previousEvent =
+                new TrackingEvent(
+                        UUID.randomUUID(),
+                        UUID.randomUUID(),
+                        UUID.randomUUID(),
+                        "AT_HUB",
+                        tenHoursAgo,
+                        "SCANNER",
+                        null,
+                        null,
+                        null);
 
-        PredictionContext context = new PredictionContext(currentEvent, previousEvent, null, null, null, 5);
+        PredictionContext context =
+                new PredictionContext(currentEvent, previousEvent, null, null, null, 5);
 
         // When
         PredictionResult result = heuristicsService.computePrediction(context);
@@ -151,11 +157,11 @@ class PredictionHeuristicsServiceTest {
                 "GPS_DEVICE",
                 null,
                 payload,
-                null
-        );
+                null);
     }
 
-    private TrackingEvent createEventWithLocation(String eventType, double lat, double lon, Map<String, Object> payload) {
+    private TrackingEvent createEventWithLocation(
+            String eventType, double lat, double lon, Map<String, Object> payload) {
         return new TrackingEvent(
                 UUID.randomUUID(),
                 UUID.randomUUID(),
@@ -165,7 +171,6 @@ class PredictionHeuristicsServiceTest {
                 "GPS_DEVICE",
                 new TrackingEvent.Location(lat, lon, null),
                 payload,
-                null
-        );
+                null);
     }
 }

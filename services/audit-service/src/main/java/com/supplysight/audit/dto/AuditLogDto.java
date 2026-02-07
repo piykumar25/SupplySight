@@ -1,15 +1,12 @@
 package com.supplysight.audit.dto;
 
-import lombok.*;
-
 import java.time.Instant;
 import java.time.LocalDate;
 import java.util.Map;
 import java.util.UUID;
+import lombok.*;
 
-/**
- * DTOs for audit log operations.
- */
+/** DTOs for audit log operations. */
 public class AuditLogDto {
 
     @Data

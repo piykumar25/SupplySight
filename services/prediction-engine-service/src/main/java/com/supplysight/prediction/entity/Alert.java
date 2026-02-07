@@ -1,16 +1,13 @@
 package com.supplysight.prediction.entity;
 
 import jakarta.persistence.*;
-import org.hibernate.annotations.JdbcTypeCode;
-import org.hibernate.type.SqlTypes;
-
 import java.time.Instant;
 import java.util.Map;
 import java.util.UUID;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
 
-/**
- * Alert entity for high-risk and anomaly notifications.
- */
+/** Alert entity for high-risk and anomaly notifications. */
 @Entity
 @Table(name = "alerts", schema = "prediction")
 public class Alert {

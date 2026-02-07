@@ -5,6 +5,10 @@ import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import java.io.IOException;
+import java.util.List;
+import java.util.Optional;
+import java.util.UUID;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.slf4j.MDC;
@@ -14,14 +18,9 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.util.StringUtils;
 import org.springframework.web.filter.OncePerRequestFilter;
 
-import java.io.IOException;
-import java.util.List;
-import java.util.Optional;
-import java.util.UUID;
-
 /**
- * JWT authentication filter that validates tokens and sets up security context.
- * Also populates TenantContext for tenant isolation.
+ * JWT authentication filter that validates tokens and sets up security context. Also populates
+ * TenantContext for tenant isolation.
  */
 public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
@@ -37,8 +36,9 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
     }
 
     @Override
-    protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, 
-                                    FilterChain filterChain) throws ServletException, IOException {
+    protected void doFilterInternal(
+            HttpServletRequest request, HttpServletResponse response, FilterChain filterChain)
+            throws ServletException, IOException {
         try {
             // Set correlation ID for request tracing
             String correlationId = request.getHeader(CORRELATION_ID_HEADER);
@@ -49,29 +49,41 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             response.setHeader(CORRELATION_ID_HEADER, correlationId);
 
             // Extract and validate JWT
-            extractToken(request).ifPresent(token -> {
-                Optional<Claims> claimsOpt = jwtTokenProvider.validateToken(token);
-                claimsOpt.ifPresent(claims -> {
-                    TenantContext.TenantInfo tenantInfo = jwtTokenProvider.extractTenantInfo(claims);
-                    
-                    // Set tenant context
-                    TenantContext.set(tenantInfo);
-                    MDC.put("tenantId", tenantInfo.tenantId().toString());
-                    MDC.put("userId", tenantInfo.userId().toString());
+            extractToken(request)
+                    .ifPresent(
+                            token -> {
+                                Optional<Claims> claimsOpt = jwtTokenProvider.validateToken(token);
+                                claimsOpt.ifPresent(
+                                        claims -> {
+                                            TenantContext.TenantInfo tenantInfo =
+                                                    jwtTokenProvider.extractTenantInfo(claims);
 
-                    // Set Spring Security context
-                    List<SimpleGrantedAuthority> authorities = tenantInfo.roles().stream()
-                            .map(role -> new SimpleGrantedAuthority("ROLE_" + role))
-                            .toList();
+                                            // Set tenant context
+                                            TenantContext.set(tenantInfo);
+                                            MDC.put("tenantId", tenantInfo.tenantId().toString());
+                                            MDC.put("userId", tenantInfo.userId().toString());
 
-                    UsernamePasswordAuthenticationToken authentication = 
-                            new UsernamePasswordAuthenticationToken(tenantInfo, null, authorities);
-                    SecurityContextHolder.getContext().setAuthentication(authentication);
+                                            // Set Spring Security context
+                                            List<SimpleGrantedAuthority> authorities =
+                                                    tenantInfo.roles().stream()
+                                                            .map(
+                                                                    role ->
+                                                                            new SimpleGrantedAuthority(
+                                                                                    "ROLE_" + role))
+                                                            .toList();
 
-                    log.debug("Authenticated user: {} for tenant: {}", 
-                            tenantInfo.username(), tenantInfo.tenantId());
-                });
-            });
+                                            UsernamePasswordAuthenticationToken authentication =
+                                                    new UsernamePasswordAuthenticationToken(
+                                                            tenantInfo, null, authorities);
+                                            SecurityContextHolder.getContext()
+                                                    .setAuthentication(authentication);
+
+                                            log.debug(
+                                                    "Authenticated user: {} for tenant: {}",
+                                                    tenantInfo.username(),
+                                                    tenantInfo.tenantId());
+                                        });
+                            });
 
             filterChain.doFilter(request, response);
         } finally {

@@ -5,6 +5,11 @@ import io.micrometer.core.instrument.Counter;
 import io.micrometer.core.instrument.MeterRegistry;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import java.time.Duration;
+import java.time.Instant;
+import java.time.LocalDate;
+import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.data.redis.core.RedisTemplate;
@@ -13,15 +18,7 @@ import org.springframework.http.MediaType;
 import org.springframework.stereotype.Component;
 import org.springframework.web.servlet.HandlerInterceptor;
 
-import java.time.Duration;
-import java.time.Instant;
-import java.time.LocalDate;
-import java.util.UUID;
-import java.util.concurrent.ConcurrentHashMap;
-
-/**
- * Interceptor for enforcing tenant quota limits on event ingestion.
- */
+/** Interceptor for enforcing tenant quota limits on event ingestion. */
 @Component
 public class QuotaEnforcementInterceptor implements HandlerInterceptor {
 
@@ -37,14 +34,14 @@ public class QuotaEnforcementInterceptor implements HandlerInterceptor {
     private final ConcurrentHashMap<String, Counter> throttledCounters = new ConcurrentHashMap<>();
 
     public QuotaEnforcementInterceptor(
-            RedisTemplate<String, String> redisTemplate,
-            MeterRegistry meterRegistry) {
+            RedisTemplate<String, String> redisTemplate, MeterRegistry meterRegistry) {
         this.redisTemplate = redisTemplate;
         this.meterRegistry = meterRegistry;
     }
 
     @Override
-    public boolean preHandle(HttpServletRequest request, HttpServletResponse response, Object handler)
+    public boolean preHandle(
+            HttpServletRequest request, HttpServletResponse response, Object handler)
             throws Exception {
         UUID tenantId = TenantContext.getTenantId();
 
@@ -67,7 +64,9 @@ public class QuotaEnforcementInterceptor implements HandlerInterceptor {
             response.setHeader("Retry-After", String.valueOf(DEFAULT_RETRY_AFTER_SECONDS));
             response.setContentType(MediaType.APPLICATION_JSON_VALUE);
 
-            String errorBody = String.format("""
+            String errorBody =
+                    String.format(
+                            """
                     {
                         "success": false,
                         "error": {
@@ -76,7 +75,8 @@ public class QuotaEnforcementInterceptor implements HandlerInterceptor {
                         },
                         "timestamp": "%s"
                     }
-                    """, DEFAULT_RETRY_AFTER_SECONDS, Instant.now().toString());
+                    """,
+                            DEFAULT_RETRY_AFTER_SECONDS, Instant.now().toString());
 
             response.getWriter().write(errorBody);
             return false;
@@ -90,7 +90,8 @@ public class QuotaEnforcementInterceptor implements HandlerInterceptor {
 
     private boolean checkRateLimit(String tenantId) {
         try {
-            int maxEps = getQuotaLimit(tenantId, "max_events_per_second", DEFAULT_MAX_EVENTS_PER_SECOND);
+            int maxEps =
+                    getQuotaLimit(tenantId, "max_events_per_second", DEFAULT_MAX_EVENTS_PER_SECOND);
             int currentEps = getCurrentEventsPerSecond(tenantId);
 
             return currentEps < maxEps;
@@ -140,9 +141,12 @@ public class QuotaEnforcementInterceptor implements HandlerInterceptor {
     }
 
     private Counter getOrCreateThrottledCounter(String tenantId) {
-        return throttledCounters.computeIfAbsent(tenantId, id -> Counter.builder("event_ingestion_throttled_total")
-                .tag("tenant_id", tenantId)
-                .description("Total number of event ingestion requests throttled")
-                .register(meterRegistry));
+        return throttledCounters.computeIfAbsent(
+                tenantId,
+                id ->
+                        Counter.builder("event_ingestion_throttled_total")
+                                .tag("tenant_id", tenantId)
+                                .description("Total number of event ingestion requests throttled")
+                                .register(meterRegistry));
     }
 }

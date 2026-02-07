@@ -1,17 +1,14 @@
 package com.supplysight.gateway.controller;
 
+import java.time.Instant;
+import java.util.HashMap;
+import java.util.Map;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RestController;
 import reactor.core.publisher.Mono;
 
-import java.time.Instant;
-import java.util.HashMap;
-import java.util.Map;
-
-/**
- * Health and status controller for the API Gateway.
- */
+/** Health and status controller for the API Gateway. */
 @RestController
 public class GatewayHealthController {
 

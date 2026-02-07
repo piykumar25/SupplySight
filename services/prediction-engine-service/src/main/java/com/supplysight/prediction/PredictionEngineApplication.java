@@ -5,9 +5,7 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.data.jpa.repository.config.EnableJpaAuditing;
 import org.springframework.kafka.annotation.EnableKafka;
 
-/**
- * Prediction Engine Service - Computes ETA, delay risk, and anomaly detection.
- */
+/** Prediction Engine Service - Computes ETA, delay risk, and anomaly detection. */
 @SpringBootApplication(scanBasePackages = {"com.supplysight.prediction", "com.supplysight.common"})
 @EnableJpaAuditing
 @EnableKafka

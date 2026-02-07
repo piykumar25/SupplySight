@@ -7,16 +7,12 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
+import java.util.UUID;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.UUID;
-
-/**
- * Admin controller for tenant quota and usage management.
- * All endpoints require ADMIN role.
- */
+/** Admin controller for tenant quota and usage management. All endpoints require ADMIN role. */
 @RestController
 @RequestMapping("/admin/tenants")
 @Tag(name = "Tenant Admin", description = "Tenant quota and usage management (ADMIN only)")
@@ -47,7 +43,9 @@ public class TenantAdminController {
     }
 
     @GetMapping("/{tenantId}/usage")
-    @Operation(summary = "Get Tenant Usage", description = "Get current resource usage for a tenant")
+    @Operation(
+            summary = "Get Tenant Usage",
+            description = "Get current resource usage for a tenant")
     public ResponseEntity<ApiResponse<TenantQuotaDto.UsageResponse>> getUsage(
             @Parameter(description = "Tenant ID") @PathVariable UUID tenantId) {
         TenantQuotaDto.UsageResponse response = quotaService.getUsage(tenantId);
@@ -55,7 +53,9 @@ public class TenantAdminController {
     }
 
     @GetMapping("/{tenantId}/quota-summary")
-    @Operation(summary = "Get Quota Summary", description = "Get combined limits and usage for a tenant")
+    @Operation(
+            summary = "Get Quota Summary",
+            description = "Get combined limits and usage for a tenant")
     public ResponseEntity<ApiResponse<TenantQuotaDto.QuotaSummary>> getQuotaSummary(
             @Parameter(description = "Tenant ID") @PathVariable UUID tenantId) {
         TenantQuotaDto.LimitsResponse limits = quotaService.getLimits(tenantId);

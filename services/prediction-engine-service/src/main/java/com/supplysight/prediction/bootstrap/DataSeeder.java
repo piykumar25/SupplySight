@@ -3,13 +3,6 @@ package com.supplysight.prediction.bootstrap;
 import com.supplysight.prediction.entity.ShipmentPrediction;
 import com.supplysight.prediction.entity.ShipmentPrediction.DelayRisk;
 import com.supplysight.prediction.repository.ShipmentPredictionRepository;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.springframework.boot.ApplicationArguments;
-import org.springframework.boot.ApplicationRunner;
-import org.springframework.context.annotation.Profile;
-import org.springframework.stereotype.Component;
-
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.Arrays;
@@ -18,6 +11,12 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.boot.ApplicationArguments;
+import org.springframework.boot.ApplicationRunner;
+import org.springframework.context.annotation.Profile;
+import org.springframework.stereotype.Component;
 
 @Component
 @Profile("!prod")
@@ -27,14 +26,20 @@ public class DataSeeder implements ApplicationRunner {
 
     private final ShipmentPredictionRepository repository;
 
-    private static final UUID DEMO_TENANT_ID = UUID.fromString("9163981b-29ca-4765-b5ef-a1e838db11d2");
+    private static final UUID DEMO_TENANT_ID =
+            UUID.fromString("9163981b-29ca-4765-b5ef-a1e838db11d2");
 
     // Fixed UUIDs matching Visibility Service
-    public static final UUID SHIPMENT_ID_1 = UUID.fromString("11111111-1111-1111-1111-111111111111");
-    public static final UUID SHIPMENT_ID_2 = UUID.fromString("22222222-2222-2222-2222-222222222222");
-    public static final UUID SHIPMENT_ID_3 = UUID.fromString("33333333-3333-3333-3333-333333333333");
-    public static final UUID SHIPMENT_ID_4 = UUID.fromString("44444444-4444-4444-4444-444444444444");
-    public static final UUID SHIPMENT_ID_5 = UUID.fromString("55555555-5555-5555-5555-555555555555");
+    public static final UUID SHIPMENT_ID_1 =
+            UUID.fromString("11111111-1111-1111-1111-111111111111");
+    public static final UUID SHIPMENT_ID_2 =
+            UUID.fromString("22222222-2222-2222-2222-222222222222");
+    public static final UUID SHIPMENT_ID_3 =
+            UUID.fromString("33333333-3333-3333-3333-333333333333");
+    public static final UUID SHIPMENT_ID_4 =
+            UUID.fromString("44444444-4444-4444-4444-444444444444");
+    public static final UUID SHIPMENT_ID_5 =
+            UUID.fromString("55555555-5555-5555-5555-555555555555");
 
     public DataSeeder(ShipmentPredictionRepository repository) {
         this.repository = repository;
@@ -51,19 +56,20 @@ public class DataSeeder implements ApplicationRunner {
 
         log.info("No predictions found. Seeding demo data for Tenant {}", DEMO_TENANT_ID);
 
-        List<ShipmentPrediction> predictions = Arrays.asList(
-                createPrediction(SHIPMENT_ID_1, 2, 0.1, DelayRisk.LOW, false),
-                createPrediction(SHIPMENT_ID_2, -1, 0.0, DelayRisk.LOW, false),
-                createPrediction(SHIPMENT_ID_3, 4, 0.8, DelayRisk.HIGH, true),
-                createPrediction(SHIPMENT_ID_4, 3, 0.2, DelayRisk.LOW, false),
-                createPrediction(SHIPMENT_ID_5, 5, 0.05, DelayRisk.LOW, false));
+        List<ShipmentPrediction> predictions =
+                Arrays.asList(
+                        createPrediction(SHIPMENT_ID_1, 2, 0.1, DelayRisk.LOW, false),
+                        createPrediction(SHIPMENT_ID_2, -1, 0.0, DelayRisk.LOW, false),
+                        createPrediction(SHIPMENT_ID_3, 4, 0.8, DelayRisk.HIGH, true),
+                        createPrediction(SHIPMENT_ID_4, 3, 0.2, DelayRisk.LOW, false),
+                        createPrediction(SHIPMENT_ID_5, 5, 0.05, DelayRisk.LOW, false));
 
         repository.saveAll(predictions);
         log.info("Created {} demo predictions.", predictions.size());
     }
 
-    private ShipmentPrediction createPrediction(UUID shipmentId, int daysToEta, Double delayProb, DelayRisk risk,
-            boolean anomaly) {
+    private ShipmentPrediction createPrediction(
+            UUID shipmentId, int daysToEta, Double delayProb, DelayRisk risk, boolean anomaly) {
         ShipmentPrediction p = new ShipmentPrediction();
         p.setTenantId(DEMO_TENANT_ID);
         p.setShipmentId(shipmentId);

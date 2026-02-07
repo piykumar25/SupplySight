@@ -2,30 +2,24 @@ package com.supplysight.generator.controller;
 
 import com.supplysight.generator.service.DataGeneratorService;
 import com.supplysight.generator.service.DataIngestionService;
+import java.util.*;
+import java.util.concurrent.CompletableFuture;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.*;
-import java.util.concurrent.CompletableFuture;
-
-/**
- * REST controller for generating sample data.
- */
+/** REST controller for generating sample data. */
 @RestController
 @RequestMapping("/api/v1/generate")
 public class GeneratorController {
 
-    @Autowired
-    private DataGeneratorService dataGeneratorService;
+    @Autowired private DataGeneratorService dataGeneratorService;
 
-    @Autowired
-    private DataIngestionService dataIngestionService;
+    @Autowired private DataIngestionService dataIngestionService;
 
     @PostMapping("/shipments/{count}")
     public ResponseEntity<Map<String, Object>> generateShipments(
-            @PathVariable int count,
-            @RequestParam(required = false) UUID tenantId) {
+            @PathVariable int count, @RequestParam(required = false) UUID tenantId) {
 
         if (tenantId == null) {
             tenantId = UUID.randomUUID();
@@ -37,21 +31,22 @@ public class GeneratorController {
         }
 
         // Ingest shipments and events asynchronously
-        CompletableFuture.runAsync(() -> {
-            for (DataGeneratorService.ShipmentData shipment : shipments) {
-                try {
-                    dataIngestionService.ingestShipment(shipment);
-                    List<DataGeneratorService.EventData> events = dataGeneratorService
-                            .generateEventsForShipment(shipment);
-                    for (DataGeneratorService.EventData event : events) {
-                        dataIngestionService.ingestEvent(event);
-                        Thread.sleep(100); // Small delay between events
+        CompletableFuture.runAsync(
+                () -> {
+                    for (DataGeneratorService.ShipmentData shipment : shipments) {
+                        try {
+                            dataIngestionService.ingestShipment(shipment);
+                            List<DataGeneratorService.EventData> events =
+                                    dataGeneratorService.generateEventsForShipment(shipment);
+                            for (DataGeneratorService.EventData event : events) {
+                                dataIngestionService.ingestEvent(event);
+                                Thread.sleep(100); // Small delay between events
+                            }
+                        } catch (Exception e) {
+                            System.err.println("Failed to ingest shipment: " + e.getMessage());
+                        }
                     }
-                } catch (Exception e) {
-                    System.err.println("Failed to ingest shipment: " + e.getMessage());
-                }
-            }
-        });
+                });
 
         Map<String, Object> response = new HashMap<>();
         response.put("success", true);

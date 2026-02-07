@@ -14,20 +14,15 @@ import com.supplysight.prediction.service.PredictionHeuristicsService.Prediction
 import com.supplysight.prediction.service.PredictionHeuristicsService.PredictionResult;
 import io.micrometer.core.instrument.Counter;
 import io.micrometer.core.instrument.MeterRegistry;
+import java.util.HashMap;
+import java.util.Map;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.UUID;
-
-/**
- * Main prediction service that processes events and generates predictions.
- */
+/** Main prediction service that processes events and generates predictions. */
 @Service
 public class PredictionService {
 
@@ -45,52 +40,62 @@ public class PredictionService {
             AlertRepository alertRepository,
             PredictionHeuristicsService heuristicsService,
             KafkaTemplate<String, Object> kafkaTemplate,
-            MeterRegistry meterRegistry
-    ) {
+            MeterRegistry meterRegistry) {
         this.predictionRepository = predictionRepository;
         this.alertRepository = alertRepository;
         this.heuristicsService = heuristicsService;
         this.kafkaTemplate = kafkaTemplate;
 
-        this.predictionsGeneratedCounter = Counter.builder("predictions.generated")
-                .description("Number of predictions generated")
-                .register(meterRegistry);
-        this.alertsGeneratedCounter = Counter.builder("alerts.generated")
-                .description("Number of alerts generated")
-                .register(meterRegistry);
+        this.predictionsGeneratedCounter =
+                Counter.builder("predictions.generated")
+                        .description("Number of predictions generated")
+                        .register(meterRegistry);
+        this.alertsGeneratedCounter =
+                Counter.builder("alerts.generated")
+                        .description("Number of alerts generated")
+                        .register(meterRegistry);
     }
 
-    /**
-     * Process a validated event and generate prediction.
-     */
+    /** Process a validated event and generate prediction. */
     @Transactional
     public ShipmentPrediction processEvent(TrackingEvent event) {
         log.debug("Processing event {} for prediction", event.eventId());
 
         // Check if prediction already exists for this event
-        if (predictionRepository.existsByShipmentIdAndEventId(event.shipmentId(), event.eventId())) {
+        if (predictionRepository.existsByShipmentIdAndEventId(
+                event.shipmentId(), event.eventId())) {
             log.debug("Prediction already exists for event {}", event.eventId());
             return null;
         }
 
         // Get previous prediction for context
-        ShipmentPrediction previousPrediction = predictionRepository
-                .findLatestByTenantIdAndShipmentId(event.tenantId(), event.shipmentId())
-                .orElse(null);
+        ShipmentPrediction previousPrediction =
+                predictionRepository
+                        .findLatestByTenantIdAndShipmentId(event.tenantId(), event.shipmentId())
+                        .orElse(null);
 
         // Build context
-        TrackingEvent previousEvent = null; // Would need to fetch from visibility service in production
-        int eventCount = previousPrediction != null ? previousPrediction.getFactors() != null 
-                ? getIntFactor(previousPrediction.getFactors(), "eventCount", 0) + 1 : 1 : 1;
+        TrackingEvent previousEvent =
+                null; // Would need to fetch from visibility service in production
+        int eventCount =
+                previousPrediction != null
+                        ? previousPrediction.getFactors() != null
+                                ? getIntFactor(previousPrediction.getFactors(), "eventCount", 0) + 1
+                                : 1
+                        : 1;
 
-        PredictionContext context = new PredictionContext(
-                event,
-                previousEvent,
-                previousPrediction != null ? getDoubleFactor(previousPrediction.getFactors(), "destinationLat") : null,
-                previousPrediction != null ? getDoubleFactor(previousPrediction.getFactors(), "destinationLon") : null,
-                previousPrediction != null ? previousPrediction.getEta() : null,
-                eventCount
-        );
+        PredictionContext context =
+                new PredictionContext(
+                        event,
+                        previousEvent,
+                        previousPrediction != null
+                                ? getDoubleFactor(previousPrediction.getFactors(), "destinationLat")
+                                : null,
+                        previousPrediction != null
+                                ? getDoubleFactor(previousPrediction.getFactors(), "destinationLon")
+                                : null,
+                        previousPrediction != null ? previousPrediction.getEta() : null,
+                        eventCount);
 
         // Compute prediction
         PredictionResult result = heuristicsService.computePrediction(context);
@@ -100,8 +105,11 @@ public class PredictionService {
         prediction = predictionRepository.save(prediction);
         predictionsGeneratedCounter.increment();
 
-        log.info("Generated prediction for shipment {}: risk={}, anomaly={}", 
-                event.shipmentId(), result.delayRisk(), result.anomalyDetected());
+        log.info(
+                "Generated prediction for shipment {}: risk={}, anomaly={}",
+                event.shipmentId(),
+                result.delayRisk(),
+                result.anomalyDetected());
 
         // Generate alerts if needed
         generateAlerts(prediction, result);
@@ -112,7 +120,8 @@ public class PredictionService {
         return prediction;
     }
 
-    private ShipmentPrediction createPrediction(TrackingEvent event, PredictionResult result, int eventCount) {
+    private ShipmentPrediction createPrediction(
+            TrackingEvent event, PredictionResult result, int eventCount) {
         ShipmentPrediction prediction = new ShipmentPrediction();
         prediction.setTenantId(event.tenantId());
         prediction.setShipmentId(event.shipmentId());
@@ -137,13 +146,14 @@ public class PredictionService {
     private void generateAlerts(ShipmentPrediction prediction, PredictionResult result) {
         // Alert for high delay risk
         if (result.delayRisk() == DelayRisk.HIGH) {
-            Alert alert = createAlert(
-                    prediction,
-                    AlertType.DELAY_RISK_HIGH,
-                    Severity.WARNING,
-                    String.format("High delay risk detected for shipment. Delay probability: %.1f%%",
-                            result.delayProbability() * 100)
-            );
+            Alert alert =
+                    createAlert(
+                            prediction,
+                            AlertType.DELAY_RISK_HIGH,
+                            Severity.WARNING,
+                            String.format(
+                                    "High delay risk detected for shipment. Delay probability: %.1f%%",
+                                    result.delayProbability() * 100));
             alertRepository.save(alert);
             alertsGeneratedCounter.increment();
             publishAlert(alert);
@@ -155,12 +165,12 @@ public class PredictionService {
                 AlertType alertType = mapAnomalyToAlertType(anomalyFlag);
                 Severity severity = mapAnomalyToSeverity(anomalyFlag);
 
-                Alert alert = createAlert(
-                        prediction,
-                        alertType,
-                        severity,
-                        String.format("Anomaly detected: %s", anomalyFlag)
-                );
+                Alert alert =
+                        createAlert(
+                                prediction,
+                                alertType,
+                                severity,
+                                String.format("Anomaly detected: %s", anomalyFlag));
                 alert.setDetails(Map.of("anomalyFlag", anomalyFlag, "factors", result.factors()));
                 alertRepository.save(alert);
                 alertsGeneratedCounter.increment();
@@ -169,7 +179,8 @@ public class PredictionService {
         }
     }
 
-    private Alert createAlert(ShipmentPrediction prediction, AlertType type, Severity severity, String message) {
+    private Alert createAlert(
+            ShipmentPrediction prediction, AlertType type, Severity severity, String message) {
         Alert alert = new Alert();
         alert.setTenantId(prediction.getTenantId());
         alert.setShipmentId(prediction.getShipmentId());
@@ -198,31 +209,32 @@ public class PredictionService {
     }
 
     private void publishPrediction(ShipmentPrediction prediction) {
-        Map<String, Object> message = Map.of(
-                "predictionId", prediction.getId().toString(),
-                "tenantId", prediction.getTenantId().toString(),
-                "shipmentId", prediction.getShipmentId().toString(),
-                "eventId", prediction.getEventId().toString(),
-                "eta", prediction.getEta() != null ? prediction.getEta().toString() : null,
-                "delayProbability", prediction.getDelayProbability(),
-                "delayRisk", prediction.getDelayRisk().name(),
-                "anomalyDetected", prediction.isAnomalyDetected(),
-                "createdAt", prediction.getCreatedAt().toString()
-        );
+        Map<String, Object> message =
+                Map.of(
+                        "predictionId", prediction.getId().toString(),
+                        "tenantId", prediction.getTenantId().toString(),
+                        "shipmentId", prediction.getShipmentId().toString(),
+                        "eventId", prediction.getEventId().toString(),
+                        "eta", prediction.getEta() != null ? prediction.getEta().toString() : null,
+                        "delayProbability", prediction.getDelayProbability(),
+                        "delayRisk", prediction.getDelayRisk().name(),
+                        "anomalyDetected", prediction.isAnomalyDetected(),
+                        "createdAt", prediction.getCreatedAt().toString());
 
-        kafkaTemplate.send(KafkaTopics.TRACKING_PREDICTIONS, prediction.getShipmentId().toString(), message);
+        kafkaTemplate.send(
+                KafkaTopics.TRACKING_PREDICTIONS, prediction.getShipmentId().toString(), message);
     }
 
     private void publishAlert(Alert alert) {
-        AlertDto.AlertMessage message = new AlertDto.AlertMessage(
-                alert.getId(),
-                alert.getTenantId(),
-                alert.getShipmentId(),
-                alert.getAlertType().name(),
-                alert.getSeverity().name(),
-                alert.getMessage(),
-                alert.getCreatedAt()
-        );
+        AlertDto.AlertMessage message =
+                new AlertDto.AlertMessage(
+                        alert.getId(),
+                        alert.getTenantId(),
+                        alert.getShipmentId(),
+                        alert.getAlertType().name(),
+                        alert.getSeverity().name(),
+                        alert.getMessage(),
+                        alert.getCreatedAt());
 
         kafkaTemplate.send(KafkaTopics.TRACKING_ALERTS, alert.getShipmentId().toString(), message);
         log.info("Published alert {} for shipment {}", alert.getId(), alert.getShipmentId());

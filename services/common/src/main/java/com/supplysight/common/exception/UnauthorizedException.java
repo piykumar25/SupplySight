@@ -1,10 +1,8 @@
 package com.supplysight.common.exception;
 
-/**
- * Exception thrown for authentication failures.
- */
+/** Exception thrown for authentication failures. */
 public class UnauthorizedException extends SupplySightException {
-    
+
     private static final String ERROR_CODE = "UNAUTHORIZED";
     private static final int HTTP_STATUS = 401;
 

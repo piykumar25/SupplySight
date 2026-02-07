@@ -6,29 +6,29 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Primary;
 import reactor.core.publisher.Mono;
 
-/**
- * Gateway configuration for rate limiting key resolvers.
- */
+/** Gateway configuration for rate limiting key resolvers. */
 @Configuration
 public class GatewayConfig {
 
     /**
-     * Rate limiter key resolver based on client IP address.
-     * Used for public endpoints like login.
+     * Rate limiter key resolver based on client IP address. Used for public endpoints like login.
      */
     @Bean
     @Primary
     public KeyResolver ipKeyResolver() {
-        return exchange -> Mono.just(
-                exchange.getRequest().getRemoteAddress() != null
-                        ? exchange.getRequest().getRemoteAddress().getAddress().getHostAddress()
-                        : "unknown"
-        );
+        return exchange ->
+                Mono.just(
+                        exchange.getRequest().getRemoteAddress() != null
+                                ? exchange.getRequest()
+                                        .getRemoteAddress()
+                                        .getAddress()
+                                        .getHostAddress()
+                                : "unknown");
     }
 
     /**
-     * Rate limiter key resolver based on tenant ID from JWT claims.
-     * Falls back to IP address if tenant ID is not available.
+     * Rate limiter key resolver based on tenant ID from JWT claims. Falls back to IP address if
+     * tenant ID is not available.
      */
     @Bean
     public KeyResolver tenantKeyResolver() {
@@ -41,8 +41,7 @@ public class GatewayConfig {
             return Mono.just(
                     exchange.getRequest().getRemoteAddress() != null
                             ? exchange.getRequest().getRemoteAddress().getAddress().getHostAddress()
-                            : "unknown"
-            );
+                            : "unknown");
         };
     }
 }

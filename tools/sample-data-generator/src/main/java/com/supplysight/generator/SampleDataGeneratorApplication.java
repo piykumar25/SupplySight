@@ -3,9 +3,7 @@ package com.supplysight.generator;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 
-/**
- * Sample Data Generator - Generates realistic shipment and event data for testing.
- */
+/** Sample Data Generator - Generates realistic shipment and event data for testing. */
 @SpringBootApplication(scanBasePackages = {"com.supplysight.generator", "com.supplysight.common"})
 public class SampleDataGeneratorApplication {
 

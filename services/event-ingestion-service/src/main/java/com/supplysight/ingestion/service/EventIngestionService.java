@@ -12,6 +12,10 @@ import com.supplysight.ingestion.repository.ProcessedEventRepository;
 import com.supplysight.ingestion.repository.TrackingEventRepository;
 import io.micrometer.core.instrument.Counter;
 import io.micrometer.core.instrument.MeterRegistry;
+import java.time.Instant;
+import java.util.*;
+import java.util.concurrent.CompletableFuture;
+import java.util.stream.Collectors;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
@@ -20,15 +24,7 @@ import org.springframework.kafka.support.SendResult;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.time.Duration;
-import java.time.Instant;
-import java.util.*;
-import java.util.concurrent.CompletableFuture;
-import java.util.stream.Collectors;
-
-/**
- * Service for event ingestion, validation, deduplication, and publishing.
- */
+/** Service for event ingestion, validation, deduplication, and publishing. */
 @Service
 public class EventIngestionService {
 
@@ -50,28 +46,28 @@ public class EventIngestionService {
             ProcessedEventRepository processedEventRepository,
             KafkaTemplate<String, TrackingEvent> kafkaTemplate,
             EventValidationService validationService,
-            MeterRegistry meterRegistry
-    ) {
+            MeterRegistry meterRegistry) {
         this.trackingEventRepository = trackingEventRepository;
         this.processedEventRepository = processedEventRepository;
         this.kafkaTemplate = kafkaTemplate;
         this.validationService = validationService;
 
         // Initialize metrics
-        this.eventsIngestedCounter = Counter.builder("events.ingested")
-                .description("Number of events successfully ingested")
-                .register(meterRegistry);
-        this.eventsDuplicatedCounter = Counter.builder("events.duplicated")
-                .description("Number of duplicate events rejected")
-                .register(meterRegistry);
-        this.eventsRejectedCounter = Counter.builder("events.rejected")
-                .description("Number of events rejected due to validation")
-                .register(meterRegistry);
+        this.eventsIngestedCounter =
+                Counter.builder("events.ingested")
+                        .description("Number of events successfully ingested")
+                        .register(meterRegistry);
+        this.eventsDuplicatedCounter =
+                Counter.builder("events.duplicated")
+                        .description("Number of duplicate events rejected")
+                        .register(meterRegistry);
+        this.eventsRejectedCounter =
+                Counter.builder("events.rejected")
+                        .description("Number of events rejected due to validation")
+                        .register(meterRegistry);
     }
 
-    /**
-     * Ingest a single event via REST API.
-     */
+    /** Ingest a single event via REST API. */
     @Transactional
     public IngestResponse ingestEvent(IngestRequest request, String sourceIp, UUID correlationId) {
         log.debug("Ingesting event: {} for shipment: {}", request.eventId(), request.shipmentId());
@@ -103,16 +99,18 @@ public class EventIngestionService {
         publishValidatedEvent(request, correlationId);
 
         eventsIngestedCounter.increment();
-        log.info("Event ingested successfully: {} for shipment: {}", request.eventId(), request.shipmentId());
-        
+        log.info(
+                "Event ingested successfully: {} for shipment: {}",
+                request.eventId(),
+                request.shipmentId());
+
         return IngestResponse.accepted(request.eventId());
     }
 
-    /**
-     * Ingest a batch of events.
-     */
+    /** Ingest a batch of events. */
     @Transactional
-    public BatchIngestResponse ingestBatch(BatchIngestRequest request, String sourceIp, UUID correlationId) {
+    public BatchIngestResponse ingestBatch(
+            BatchIngestRequest request, String sourceIp, UUID correlationId) {
         log.info("Ingesting batch of {} events", request.events().size());
 
         List<IngestResponse> results = new ArrayList<>();
@@ -121,10 +119,10 @@ public class EventIngestionService {
         int rejected = 0;
 
         // Get existing event IDs for batch deduplication
-        Set<UUID> eventIds = request.events().stream()
-                .map(IngestRequest::eventId)
-                .collect(Collectors.toSet());
-        Set<UUID> existingIds = new HashSet<>(processedEventRepository.findExistingEventIds(eventIds));
+        Set<UUID> eventIds =
+                request.events().stream().map(IngestRequest::eventId).collect(Collectors.toSet());
+        Set<UUID> existingIds =
+                new HashSet<>(processedEventRepository.findExistingEventIds(eventIds));
 
         for (IngestRequest event : request.events()) {
             // Check for duplicate
@@ -156,15 +154,17 @@ public class EventIngestionService {
             eventsIngestedCounter.increment();
         }
 
-        log.info("Batch ingestion complete: {} accepted, {} duplicates, {} rejected", 
-                accepted, duplicates, rejected);
+        log.info(
+                "Batch ingestion complete: {} accepted, {} duplicates, {} rejected",
+                accepted,
+                duplicates,
+                rejected);
 
-        return new BatchIngestResponse(request.events().size(), accepted, duplicates, rejected, results);
+        return new BatchIngestResponse(
+                request.events().size(), accepted, duplicates, rejected, results);
     }
 
-    /**
-     * Process event from Kafka raw topic.
-     */
+    /** Process event from Kafka raw topic. */
     @Transactional
     public boolean processRawEvent(TrackingEvent event) {
         log.debug("Processing raw event from Kafka: {}", event.eventId());
@@ -188,25 +188,27 @@ public class EventIngestionService {
         }
 
         // Store the event
-        TrackingEventEntity entity = createEventEntity(request, null, 
-                event.metadata() != null ? event.metadata().correlationId() : null);
+        TrackingEventEntity entity =
+                createEventEntity(
+                        request,
+                        null,
+                        event.metadata() != null ? event.metadata().correlationId() : null);
         trackingEventRepository.save(entity);
 
         // Mark as processed
         markAsProcessed(event.eventId(), event.tenantId(), EventSource.KAFKA_RAW);
 
         // Publish to validated events topic
-        publishValidatedEvent(request, event.metadata() != null ? event.metadata().correlationId() : null);
+        publishValidatedEvent(
+                request, event.metadata() != null ? event.metadata().correlationId() : null);
 
         eventsIngestedCounter.increment();
         log.info("Raw event processed successfully: {}", event.eventId());
-        
+
         return true;
     }
 
-    /**
-     * Check if event has already been processed.
-     */
+    /** Check if event has already been processed. */
     public boolean isEventProcessed(UUID eventId) {
         return processedEventRepository.existsByEventId(eventId);
     }
@@ -218,7 +220,8 @@ public class EventIngestionService {
         processedEventRepository.save(processed);
     }
 
-    private TrackingEventEntity createEventEntity(IngestRequest request, String sourceIp, UUID correlationId) {
+    private TrackingEventEntity createEventEntity(
+            IngestRequest request, String sourceIp, UUID correlationId) {
         TrackingEventEntity entity = new TrackingEventEntity();
         entity.setEventId(request.eventId());
         entity.setTenantId(request.tenantId());
@@ -226,18 +229,20 @@ public class EventIngestionService {
         entity.setEventType(request.eventType());
         entity.setEventTime(request.eventTime());
         entity.setSource(request.source());
-        
+
         if (request.location() != null) {
             entity.setLocationLat(request.location().lat());
             entity.setLocationLon(request.location().lon());
             entity.setLocationHubCode(request.location().hubCode());
         }
-        
+
         entity.setPayload(request.payload());
         entity.setSourceIp(sourceIp);
-        entity.setCorrelationId(correlationId != null ? correlationId : 
-                (request.metadata() != null ? request.metadata().correlationId() : null));
-        
+        entity.setCorrelationId(
+                correlationId != null
+                        ? correlationId
+                        : (request.metadata() != null ? request.metadata().correlationId() : null));
+
         // Build metadata
         Map<String, Object> metadata = new HashMap<>();
         metadata.put("ingestedAt", Instant.now().toString());
@@ -252,65 +257,73 @@ public class EventIngestionService {
     private void publishValidatedEvent(IngestRequest request, UUID correlationId) {
         TrackingEvent.Location location = null;
         if (request.location() != null) {
-            location = new TrackingEvent.Location(
-                    request.location().lat(),
-                    request.location().lon(),
-                    request.location().hubCode()
-            );
+            location =
+                    new TrackingEvent.Location(
+                            request.location().lat(),
+                            request.location().lon(),
+                            request.location().hubCode());
         }
 
-        TrackingEvent.EventMetadata metadata = new TrackingEvent.EventMetadata(
-                Instant.now(),
-                correlationId != null ? correlationId : 
-                        (request.metadata() != null ? request.metadata().correlationId() : UUID.randomUUID()),
-                null,
-                null
-        );
+        TrackingEvent.EventMetadata metadata =
+                new TrackingEvent.EventMetadata(
+                        Instant.now(),
+                        correlationId != null
+                                ? correlationId
+                                : (request.metadata() != null
+                                        ? request.metadata().correlationId()
+                                        : UUID.randomUUID()),
+                        null,
+                        null);
 
-        TrackingEvent event = new TrackingEvent(
-                request.eventId(),
-                request.tenantId(),
-                request.shipmentId(),
-                request.eventType(),
-                request.eventTime(),
-                request.source(),
-                location,
-                request.payload(),
-                metadata
-        );
+        TrackingEvent event =
+                new TrackingEvent(
+                        request.eventId(),
+                        request.tenantId(),
+                        request.shipmentId(),
+                        request.eventType(),
+                        request.eventTime(),
+                        request.source(),
+                        location,
+                        request.payload(),
+                        metadata);
 
         // Use shipmentId as key for partition ordering
         String key = request.shipmentId().toString();
 
-        CompletableFuture<SendResult<String, TrackingEvent>> future = 
+        CompletableFuture<SendResult<String, TrackingEvent>> future =
                 kafkaTemplate.send(KafkaTopics.TRACKING_EVENTS_VALIDATED, key, event);
 
-        future.whenComplete((result, ex) -> {
-            if (ex != null) {
-                log.error("Failed to publish validated event {}: {}", request.eventId(), ex.getMessage());
-            } else {
-                log.debug("Published validated event {} to partition {}", 
-                        request.eventId(), result.getRecordMetadata().partition());
-            }
-        });
+        future.whenComplete(
+                (result, ex) -> {
+                    if (ex != null) {
+                        log.error(
+                                "Failed to publish validated event {}: {}",
+                                request.eventId(),
+                                ex.getMessage());
+                    } else {
+                        log.debug(
+                                "Published validated event {} to partition {}",
+                                request.eventId(),
+                                result.getRecordMetadata().partition());
+                    }
+                });
     }
 
     private IngestRequest convertToIngestRequest(TrackingEvent event) {
         EventIngestionDto.Location location = null;
         if (event.location() != null) {
-            location = new EventIngestionDto.Location(
-                    event.location().lat(),
-                    event.location().lon(),
-                    event.location().hubCode()
-            );
+            location =
+                    new EventIngestionDto.Location(
+                            event.location().lat(),
+                            event.location().lon(),
+                            event.location().hubCode());
         }
 
         EventIngestionDto.Metadata metadata = null;
         if (event.metadata() != null) {
-            metadata = new EventIngestionDto.Metadata(
-                    event.metadata().correlationId(),
-                    event.metadata().ingestedAt()
-            );
+            metadata =
+                    new EventIngestionDto.Metadata(
+                            event.metadata().correlationId(), event.metadata().ingestedAt());
         }
 
         return new IngestRequest(
@@ -322,7 +335,6 @@ public class EventIngestionService {
                 event.source(),
                 location,
                 event.payload(),
-                metadata
-        );
+                metadata);
     }
 }

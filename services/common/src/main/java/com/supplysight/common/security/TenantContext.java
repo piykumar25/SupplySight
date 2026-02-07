@@ -3,15 +3,14 @@ package com.supplysight.common.security;
 import java.util.UUID;
 
 /**
- * Thread-local holder for tenant context extracted from JWT.
- * Ensures tenant isolation across all operations.
+ * Thread-local holder for tenant context extracted from JWT. Ensures tenant isolation across all
+ * operations.
  */
 public final class TenantContext {
 
     private static final ThreadLocal<TenantInfo> CONTEXT = new ThreadLocal<>();
 
-    private TenantContext() {
-    }
+    private TenantContext() {}
 
     public static void set(TenantInfo tenantInfo) {
         CONTEXT.set(tenantInfo);
@@ -44,13 +43,7 @@ public final class TenantContext {
         return java.util.Optional.ofNullable(get());
     }
 
-    /**
-     * Tenant and user information extracted from JWT.
-     */
+    /** Tenant and user information extracted from JWT. */
     public record TenantInfo(
-            UUID tenantId,
-            UUID userId,
-            String username,
-            java.util.Set<String> roles) {
-    }
+            UUID tenantId, UUID userId, String username, java.util.Set<String> roles) {}
 }

@@ -7,18 +7,16 @@ import com.supplysight.visibility.repository.ShipmentCurrentStateRepository;
 import com.supplysight.visibility.repository.ShipmentTimelineRepository;
 import io.micrometer.core.instrument.Counter;
 import io.micrometer.core.instrument.MeterRegistry;
+import java.util.Optional;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.Optional;
-import java.util.UUID;
-
 /**
- * Service for projecting tracking events into materialized views.
- * Handles out-of-order events by using eventTime for ordering.
+ * Service for projecting tracking events into materialized views. Handles out-of-order events by
+ * using eventTime for ordering.
  */
 @Service
 public class VisibilityProjectionService {
@@ -34,28 +32,29 @@ public class VisibilityProjectionService {
     public VisibilityProjectionService(
             ShipmentCurrentStateRepository currentStateRepository,
             ShipmentTimelineRepository timelineRepository,
-            MeterRegistry meterRegistry
-    ) {
+            MeterRegistry meterRegistry) {
         this.currentStateRepository = currentStateRepository;
         this.timelineRepository = timelineRepository;
 
-        this.eventsProjectedCounter = Counter.builder("visibility.events.projected")
-                .description("Number of events projected to views")
-                .register(meterRegistry);
-        this.stateUpdatesCounter = Counter.builder("visibility.state.updates")
-                .description("Number of current state updates")
-                .register(meterRegistry);
-        this.outOfOrderEventsCounter = Counter.builder("visibility.events.out_of_order")
-                .description("Number of out-of-order events received")
-                .register(meterRegistry);
+        this.eventsProjectedCounter =
+                Counter.builder("visibility.events.projected")
+                        .description("Number of events projected to views")
+                        .register(meterRegistry);
+        this.stateUpdatesCounter =
+                Counter.builder("visibility.state.updates")
+                        .description("Number of current state updates")
+                        .register(meterRegistry);
+        this.outOfOrderEventsCounter =
+                Counter.builder("visibility.events.out_of_order")
+                        .description("Number of out-of-order events received")
+                        .register(meterRegistry);
     }
 
-    /**
-     * Project a validated tracking event.
-     * Updates current state and appends to timeline.
-     */
+    /** Project a validated tracking event. Updates current state and appends to timeline. */
     @Transactional
-    @CacheEvict(value = "shipment-current-state", key = "#event.tenantId() + ':' + #event.shipmentId()")
+    @CacheEvict(
+            value = "shipment-current-state",
+            key = "#event.tenantId() + ':' + #event.shipmentId()")
     public void projectEvent(TrackingEvent event) {
         log.debug("Projecting event {} for shipment {}", event.eventId(), event.shipmentId());
 
@@ -91,22 +90,28 @@ public class VisibilityProjectionService {
         timeline.setPayload(event.payload());
 
         timelineRepository.save(timeline);
-        log.debug("Added event {} to timeline for shipment {}", event.eventId(), event.shipmentId());
+        log.debug(
+                "Added event {} to timeline for shipment {}", event.eventId(), event.shipmentId());
     }
 
     private void updateCurrentState(TrackingEvent event) {
-        Optional<ShipmentCurrentState> existingOpt = currentStateRepository
-                .findByTenantIdAndShipmentId(event.tenantId(), event.shipmentId());
+        Optional<ShipmentCurrentState> existingOpt =
+                currentStateRepository.findByTenantIdAndShipmentId(
+                        event.tenantId(), event.shipmentId());
 
         if (existingOpt.isPresent()) {
             ShipmentCurrentState existing = existingOpt.get();
-            
+
             // Check if this event is newer (handle out-of-order)
             if (!existing.shouldUpdateFrom(event.eventTime())) {
-                log.debug("Out-of-order event {} for shipment {} (eventTime: {}, lastEventTime: {})",
-                        event.eventId(), event.shipmentId(), event.eventTime(), existing.getLastEventTime());
+                log.debug(
+                        "Out-of-order event {} for shipment {} (eventTime: {}, lastEventTime: {})",
+                        event.eventId(),
+                        event.shipmentId(),
+                        event.eventTime(),
+                        existing.getLastEventTime());
                 outOfOrderEventsCounter.increment();
-                
+
                 // Still increment event count
                 existing.incrementEventCount();
                 currentStateRepository.save(existing);
@@ -166,9 +171,7 @@ public class VisibilityProjectionService {
         return state;
     }
 
-    /**
-     * Map event type to shipment status.
-     */
+    /** Map event type to shipment status. */
     private String mapEventTypeToStatus(String eventType) {
         return switch (eventType) {
             case "CREATED" -> "CREATED";

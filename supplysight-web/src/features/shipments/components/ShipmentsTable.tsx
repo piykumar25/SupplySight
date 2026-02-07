@@ -177,15 +177,15 @@ export function ShipmentsTable({
                                 <td className="px-6 py-4 text-sm">
                                     <div className="flex flex-col">
                                         <span className="text-white">
-                                            {new Date(shipment.eta || shipment.expectedDeliveryDate).toLocaleDateString()}
+                                            {(shipment.eta || shipment.expectedDeliveryDate) ? new Date((shipment.eta || shipment.expectedDeliveryDate)!).toLocaleDateString() : 'N/A'}
                                         </span>
                                         <span className="text-xs text-gray-500">
-                                            {new Date(shipment.eta || shipment.expectedDeliveryDate).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                            {(shipment.eta || shipment.expectedDeliveryDate) ? new Date((shipment.eta || shipment.expectedDeliveryDate)!).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : ''}
                                         </span>
                                     </div>
                                 </td>
                                 <td className="px-6 py-4 text-sm text-gray-300">
-                                    {new Date(shipment.updatedAt).toLocaleString()}
+                                    {shipment.updatedAt ? new Date(shipment.updatedAt).toLocaleString() : 'N/A'}
                                 </td>
                                 <td className="px-6 py-4">
                                     <RowActions shipmentId={shipment.shipmentId} />

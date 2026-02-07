@@ -1,15 +1,14 @@
 package com.supplysight.tracking.domain;
 
-import jakarta.persistence.*;
+import com.supplysight.common.entity.TenantAwareEntity;
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.Table;
 import java.time.LocalDateTime;
 
 @Entity
 @Table(name = "shipment_updates")
-public class TrackingEvent {
-
-    @Id
-    @GeneratedValue(strategy = GenerationType.UUID)
-    private String id;
+public class TrackingEvent extends TenantAwareEntity {
 
     @Column(nullable = false)
     private String trackingNumber;
@@ -24,22 +23,11 @@ public class TrackingEvent {
 
     private String description;
 
-    @PrePersist
-    protected void onCreate() {
-        if (timestamp == null) {
-            timestamp = LocalDateTime.now();
-        }
+    public TrackingEvent() {
+        super();
     }
 
     // Getters and Setters
-
-    public String getId() {
-        return id;
-    }
-
-    public void setId(String id) {
-        this.id = id;
-    }
 
     public String getTrackingNumber() {
         return trackingNumber;

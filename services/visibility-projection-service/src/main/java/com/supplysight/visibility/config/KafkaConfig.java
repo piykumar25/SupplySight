@@ -1,6 +1,8 @@
 package com.supplysight.visibility.config;
 
 import com.supplysight.common.event.TrackingEvent;
+import java.util.HashMap;
+import java.util.Map;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.common.serialization.StringDeserializer;
 import org.springframework.beans.factory.annotation.Value;
@@ -12,12 +14,7 @@ import org.springframework.kafka.core.DefaultKafkaConsumerFactory;
 import org.springframework.kafka.listener.ContainerProperties;
 import org.springframework.kafka.support.serializer.JsonDeserializer;
 
-import java.util.HashMap;
-import java.util.Map;
-
-/**
- * Kafka configuration for visibility projection service.
- */
+/** Kafka configuration for visibility projection service. */
 @Configuration
 public class KafkaConfig {
 
@@ -43,7 +40,8 @@ public class KafkaConfig {
     }
 
     @Bean
-    public ConcurrentKafkaListenerContainerFactory<String, TrackingEvent> kafkaListenerContainerFactory() {
+    public ConcurrentKafkaListenerContainerFactory<String, TrackingEvent>
+            kafkaListenerContainerFactory() {
         ConcurrentKafkaListenerContainerFactory<String, TrackingEvent> factory =
                 new ConcurrentKafkaListenerContainerFactory<>();
         factory.setConsumerFactory(consumerFactory());

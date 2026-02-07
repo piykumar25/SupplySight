@@ -3,6 +3,10 @@ package com.supplysight.gateway.filter;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.supplysight.common.event.AuditEvent;
+import java.time.Instant;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.UUID;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
@@ -16,14 +20,9 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.server.ServerWebExchange;
 import reactor.core.publisher.Mono;
 
-import java.time.Instant;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.UUID;
-
 /**
- * Global filter for logging all API access to Kafka for audit trail.
- * Captures request/response details and publishes audit events.
+ * Global filter for logging all API access to Kafka for audit trail. Captures request/response
+ * details and publishes audit events.
  */
 @Component
 public class AccessLoggingFilter implements GlobalFilter, Ordered {
@@ -39,8 +38,7 @@ public class AccessLoggingFilter implements GlobalFilter, Ordered {
             KafkaTemplate<String, String> kafkaTemplate,
             ObjectMapper objectMapper,
             @Value("${gateway.audit.topic:tracking.audit}") String auditTopic,
-            @Value("${gateway.audit.enabled:true}") boolean auditEnabled
-    ) {
+            @Value("${gateway.audit.enabled:true}") boolean auditEnabled) {
         this.kafkaTemplate = kafkaTemplate;
         this.objectMapper = objectMapper;
         this.auditTopic = auditTopic;
@@ -57,22 +55,30 @@ public class AccessLoggingFilter implements GlobalFilter, Ordered {
         ServerHttpRequest request = exchange.getRequest();
 
         return chain.filter(exchange)
-                .doFinally(signal -> {
-                    try {
-                        long duration = System.currentTimeMillis() - startTime;
-                        HttpStatus status = exchange.getResponse().getStatusCode() != null
-                                ? HttpStatus.resolve(exchange.getResponse().getStatusCode().value())
-                                : HttpStatus.OK;
+                .doFinally(
+                        signal -> {
+                            try {
+                                long duration = System.currentTimeMillis() - startTime;
+                                HttpStatus status =
+                                        exchange.getResponse().getStatusCode() != null
+                                                ? HttpStatus.resolve(
+                                                        exchange.getResponse()
+                                                                .getStatusCode()
+                                                                .value())
+                                                : HttpStatus.OK;
 
-                        publishAuditEvent(exchange, request, status, duration);
-                    } catch (Exception e) {
-                        log.error("Failed to publish audit event", e);
-                    }
-                });
+                                publishAuditEvent(exchange, request, status, duration);
+                            } catch (Exception e) {
+                                log.error("Failed to publish audit event", e);
+                            }
+                        });
     }
 
-    private void publishAuditEvent(ServerWebExchange exchange, ServerHttpRequest request,
-                                    HttpStatus status, long duration) {
+    private void publishAuditEvent(
+            ServerWebExchange exchange,
+            ServerHttpRequest request,
+            HttpStatus status,
+            long duration) {
         String tenantIdStr = exchange.getAttribute("tenantId");
         String userIdStr = exchange.getAttribute("userId");
         String username = exchange.getAttribute("username");
@@ -92,40 +98,45 @@ public class AccessLoggingFilter implements GlobalFilter, Ordered {
         // Determine action based on HTTP method and path
         String action = determineAction(request.getMethod().toString(), request.getPath().value());
 
-        String sourceIp = request.getRemoteAddress() != null
-                ? request.getRemoteAddress().getAddress().getHostAddress()
-                : "unknown";
+        String sourceIp =
+                request.getRemoteAddress() != null
+                        ? request.getRemoteAddress().getAddress().getHostAddress()
+                        : "unknown";
 
         String userAgent = request.getHeaders().getFirst("User-Agent");
 
-        AuditEvent auditEvent = new AuditEvent(
-                UUID.randomUUID(),
-                tenantId,
-                userId,
-                username,
-                action,
-                "API_REQUEST",
-                request.getPath().value(),
-                Instant.now(),
-                sourceIp,
-                userAgent,
-                details,
-                correlationId
-        );
+        AuditEvent auditEvent =
+                new AuditEvent(
+                        UUID.randomUUID(),
+                        tenantId,
+                        userId,
+                        username,
+                        action,
+                        "API_REQUEST",
+                        request.getPath().value(),
+                        Instant.now(),
+                        sourceIp,
+                        userAgent,
+                        details,
+                        correlationId);
 
         try {
             String eventJson = objectMapper.writeValueAsString(auditEvent);
             String key = tenantId != null ? tenantId.toString() : "system";
-            
-            kafkaTemplate.send(auditTopic, key, eventJson)
-                    .whenComplete((result, ex) -> {
-                        if (ex != null) {
-                            log.error("Failed to publish audit event: {}", ex.getMessage());
-                        } else {
-                            log.debug("Published audit event: {} to partition {}", 
-                                    action, result.getRecordMetadata().partition());
-                        }
-                    });
+
+            kafkaTemplate
+                    .send(auditTopic, key, eventJson)
+                    .whenComplete(
+                            (result, ex) -> {
+                                if (ex != null) {
+                                    log.error("Failed to publish audit event: {}", ex.getMessage());
+                                } else {
+                                    log.debug(
+                                            "Published audit event: {} to partition {}",
+                                            action,
+                                            result.getRecordMetadata().partition());
+                                }
+                            });
         } catch (JsonProcessingException e) {
             log.error("Failed to serialize audit event", e);
         }

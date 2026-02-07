@@ -1,18 +1,21 @@
 package com.supplysight.visibility.entity;
 
 import jakarta.persistence.*;
-
 import java.time.Instant;
 import java.util.UUID;
 
 /**
- * Materialized view of current shipment state.
- * Updated on each new event, handles out-of-order by eventTime.
+ * Materialized view of current shipment state. Updated on each new event, handles out-of-order by
+ * eventTime.
  */
 @Entity
-@Table(name = "shipment_current_state", schema = "visibility",
-    uniqueConstraints = @UniqueConstraint(name = "uk_shipment_current_state_tenant_shipment", 
-                                          columnNames = {"tenant_id", "shipment_id"}))
+@Table(
+        name = "shipment_current_state",
+        schema = "visibility",
+        uniqueConstraints =
+                @UniqueConstraint(
+                        name = "uk_shipment_current_state_tenant_shipment",
+                        columnNames = {"tenant_id", "shipment_id"}))
 public class ShipmentCurrentState {
 
     @Id
@@ -99,9 +102,7 @@ public class ShipmentCurrentState {
         this.updatedAt = Instant.now();
     }
 
-    /**
-     * Check if this event is newer than current state (for out-of-order handling).
-     */
+    /** Check if this event is newer than current state (for out-of-order handling). */
     public boolean shouldUpdateFrom(Instant eventTime) {
         return this.lastEventTime == null || eventTime.isAfter(this.lastEventTime);
     }

@@ -2,15 +2,12 @@ package com.supplysight.identity.entity;
 
 import com.supplysight.common.entity.BaseEntity;
 import jakarta.persistence.*;
+import java.util.Map;
+import java.util.UUID;
 import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.type.SqlTypes;
 
-import java.util.Map;
-import java.util.UUID;
-
-/**
- * Tenant entity representing an organization in the multi-tenant system.
- */
+/** Tenant entity representing an organization in the multi-tenant system. */
 @Entity
 @Table(name = "tenants", schema = "identity")
 public class Tenant extends BaseEntity {

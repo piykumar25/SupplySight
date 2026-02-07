@@ -1,21 +1,22 @@
 package com.supplysight.prediction.entity;
 
 import jakarta.persistence.*;
-import org.hibernate.annotations.JdbcTypeCode;
-import org.hibernate.type.SqlTypes;
-
 import java.time.Instant;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
 
-/**
- * Prediction result for a shipment.
- */
+/** Prediction result for a shipment. */
 @Entity
-@Table(name = "shipment_predictions", schema = "prediction",
-    uniqueConstraints = @UniqueConstraint(name = "uk_prediction_shipment_event", 
-                                          columnNames = {"shipment_id", "event_id"}))
+@Table(
+        name = "shipment_predictions",
+        schema = "prediction",
+        uniqueConstraints =
+                @UniqueConstraint(
+                        name = "uk_prediction_shipment_event",
+                        columnNames = {"shipment_id", "event_id"}))
 public class ShipmentPrediction {
 
     @Id

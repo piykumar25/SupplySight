@@ -10,11 +10,7 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.server.ServerWebExchange;
 import reactor.core.publisher.Mono;
 
-import java.time.Instant;
-
-/**
- * Simple request logging filter for debugging and monitoring.
- */
+/** Simple request logging filter for debugging and monitoring. */
 @Component
 public class RequestLoggingFilter implements GlobalFilter, Ordered {
 
@@ -28,26 +24,30 @@ public class RequestLoggingFilter implements GlobalFilter, Ordered {
         String correlationId = exchange.getAttribute(CorrelationIdFilter.CORRELATION_ID_HEADER);
         String tenantId = exchange.getAttribute("tenantId");
 
-        log.info("Incoming request: {} {} | tenant={} | correlation={}",
+        log.info(
+                "Incoming request: {} {} | tenant={} | correlation={}",
                 request.getMethod(),
                 request.getPath().value(),
                 tenantId != null ? tenantId : "anonymous",
                 correlationId);
 
         return chain.filter(exchange)
-                .doFinally(signal -> {
-                    long duration = System.currentTimeMillis() - startTime;
-                    int statusCode = exchange.getResponse().getStatusCode() != null
-                            ? exchange.getResponse().getStatusCode().value()
-                            : 0;
+                .doFinally(
+                        signal -> {
+                            long duration = System.currentTimeMillis() - startTime;
+                            int statusCode =
+                                    exchange.getResponse().getStatusCode() != null
+                                            ? exchange.getResponse().getStatusCode().value()
+                                            : 0;
 
-                    log.info("Completed request: {} {} | status={} | duration={}ms | correlation={}",
-                            request.getMethod(),
-                            request.getPath().value(),
-                            statusCode,
-                            duration,
-                            correlationId);
-                });
+                            log.info(
+                                    "Completed request: {} {} | status={} | duration={}ms | correlation={}",
+                                    request.getMethod(),
+                                    request.getPath().value(),
+                                    statusCode,
+                                    duration,
+                                    correlationId);
+                        });
     }
 
     @Override

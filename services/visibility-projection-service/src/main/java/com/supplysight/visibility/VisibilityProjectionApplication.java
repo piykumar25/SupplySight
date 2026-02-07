@@ -7,7 +7,8 @@ import org.springframework.data.jpa.repository.config.EnableJpaAuditing;
 import org.springframework.kafka.annotation.EnableKafka;
 
 /**
- * Visibility Projection Service - Maintains materialized views and provides real-time visibility APIs.
+ * Visibility Projection Service - Maintains materialized views and provides real-time visibility
+ * APIs.
  */
 @SpringBootApplication(scanBasePackages = {"com.supplysight.visibility", "com.supplysight.common"})
 @EnableJpaAuditing

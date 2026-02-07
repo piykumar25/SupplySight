@@ -4,9 +4,7 @@ import jakarta.persistence.*;
 import java.time.Instant;
 import java.util.UUID;
 
-/**
- * Entity to store per-tenant data retention policies.
- */
+/** Entity to store per-tenant data retention policies. */
 @Entity
 @Table(name = "retention_policies", schema = "identity")
 public class RetentionPolicy {
@@ -18,39 +16,27 @@ public class RetentionPolicy {
     @Column(name = "tenant_id", nullable = false, unique = true)
     private UUID tenantId;
 
-    /**
-     * Days to retain shipment event data (default: 90 days)
-     */
+    /** Days to retain shipment event data (default: 90 days) */
     @Column(name = "event_retention_days", nullable = false)
     private int eventRetentionDays = 90;
 
-    /**
-     * Days to retain alert data (default: 30 days)
-     */
+    /** Days to retain alert data (default: 30 days) */
     @Column(name = "alert_retention_days", nullable = false)
     private int alertRetentionDays = 30;
 
-    /**
-     * Days to retain completed shipments (default: 365 days)
-     */
+    /** Days to retain completed shipments (default: 365 days) */
     @Column(name = "shipment_retention_days", nullable = false)
     private int shipmentRetentionDays = 365;
 
-    /**
-     * Days to retain audit logs (default: 730 days = 2 years)
-     */
+    /** Days to retain audit logs (default: 730 days = 2 years) */
     @Column(name = "audit_log_retention_days", nullable = false)
     private int auditLogRetentionDays = 730;
 
-    /**
-     * Whether to use soft delete (mark deleted) vs hard delete (remove data)
-     */
+    /** Whether to use soft delete (mark deleted) vs hard delete (remove data) */
     @Column(name = "soft_delete_enabled", nullable = false)
     private boolean softDeleteEnabled = true;
 
-    /**
-     * Days to retain soft-deleted records before permanent deletion
-     */
+    /** Days to retain soft-deleted records before permanent deletion */
     @Column(name = "soft_delete_grace_days", nullable = false)
     private int softDeleteGraceDays = 30;
 

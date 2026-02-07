@@ -2,7 +2,6 @@ package com.supplysight.identity.entity;
 
 import com.supplysight.common.entity.BaseEntity;
 import jakarta.persistence.*;
-
 import java.time.Instant;
 import java.util.Arrays;
 import java.util.HashSet;
@@ -10,15 +9,19 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
-/**
- * User entity representing a user account within a tenant.
- */
+/** User entity representing a user account within a tenant. */
 @Entity
-@Table(name = "users", schema = "identity",
-    uniqueConstraints = {
-        @UniqueConstraint(name = "uk_users_tenant_email", columnNames = {"tenant_id", "email"}),
-        @UniqueConstraint(name = "uk_users_tenant_username", columnNames = {"tenant_id", "username"})
-    })
+@Table(
+        name = "users",
+        schema = "identity",
+        uniqueConstraints = {
+            @UniqueConstraint(
+                    name = "uk_users_tenant_email",
+                    columnNames = {"tenant_id", "email"}),
+            @UniqueConstraint(
+                    name = "uk_users_tenant_username",
+                    columnNames = {"tenant_id", "username"})
+        })
 public class User extends BaseEntity {
 
     @Column(name = "tenant_id", nullable = false, updatable = false)
@@ -72,9 +75,7 @@ public class User extends BaseEntity {
         if (roles == null || roles.isBlank()) {
             return new HashSet<>();
         }
-        return Arrays.stream(roles.split(","))
-                .map(String::trim)
-                .collect(Collectors.toSet());
+        return Arrays.stream(roles.split(",")).map(String::trim).collect(Collectors.toSet());
     }
 
     public void setRolesSet(Set<String> rolesSet) {
@@ -216,7 +217,8 @@ public class User extends BaseEntity {
         if (firstName == null && lastName == null) {
             return username;
         }
-        return ((firstName != null ? firstName : "") + " " + (lastName != null ? lastName : "")).trim();
+        return ((firstName != null ? firstName : "") + " " + (lastName != null ? lastName : ""))
+                .trim();
     }
 
     public enum UserStatus {

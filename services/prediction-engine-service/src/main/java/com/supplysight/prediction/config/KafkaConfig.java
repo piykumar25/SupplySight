@@ -2,6 +2,8 @@ package com.supplysight.prediction.config;
 
 import com.supplysight.common.event.TrackingEvent;
 import com.supplysight.common.kafka.KafkaTopics;
+import java.util.HashMap;
+import java.util.Map;
 import org.apache.kafka.clients.admin.NewTopic;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.producer.ProducerConfig;
@@ -16,9 +18,6 @@ import org.springframework.kafka.core.*;
 import org.springframework.kafka.listener.ContainerProperties;
 import org.springframework.kafka.support.serializer.JsonDeserializer;
 import org.springframework.kafka.support.serializer.JsonSerializer;
-
-import java.util.HashMap;
-import java.util.Map;
 
 @Configuration
 public class KafkaConfig {
@@ -45,7 +44,8 @@ public class KafkaConfig {
     }
 
     @Bean
-    public ConcurrentKafkaListenerContainerFactory<String, TrackingEvent> kafkaListenerContainerFactory() {
+    public ConcurrentKafkaListenerContainerFactory<String, TrackingEvent>
+            kafkaListenerContainerFactory() {
         ConcurrentKafkaListenerContainerFactory<String, TrackingEvent> factory =
                 new ConcurrentKafkaListenerContainerFactory<>();
         factory.setConsumerFactory(consumerFactory());
@@ -71,7 +71,10 @@ public class KafkaConfig {
 
     @Bean
     public NewTopic predictionsTopic() {
-        return TopicBuilder.name(KafkaTopics.TRACKING_PREDICTIONS).partitions(3).replicas(1).build();
+        return TopicBuilder.name(KafkaTopics.TRACKING_PREDICTIONS)
+                .partitions(3)
+                .replicas(1)
+                .build();
     }
 
     @Bean

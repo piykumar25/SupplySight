@@ -1,16 +1,13 @@
 package com.supplysight.visibility.entity;
 
 import jakarta.persistence.*;
-import org.hibernate.annotations.JdbcTypeCode;
-import org.hibernate.type.SqlTypes;
-
 import java.time.Instant;
 import java.util.Map;
 import java.util.UUID;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
 
-/**
- * Immutable timeline entry for shipment events.
- */
+/** Immutable timeline entry for shipment events. */
 @Entity
 @Table(name = "shipment_timeline", schema = "visibility")
 public class ShipmentTimeline {

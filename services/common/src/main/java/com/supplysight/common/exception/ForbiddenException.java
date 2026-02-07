@@ -1,10 +1,8 @@
 package com.supplysight.common.exception;
 
-/**
- * Exception thrown for authorization failures.
- */
+/** Exception thrown for authorization failures. */
 public class ForbiddenException extends SupplySightException {
-    
+
     private static final String ERROR_CODE = "FORBIDDEN";
     private static final int HTTP_STATUS = 403;
 

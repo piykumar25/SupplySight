@@ -1,5 +1,9 @@
 package com.supplysight.ingestion.service;
 
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.*;
+
 import com.supplysight.common.event.TrackingEvent;
 import com.supplysight.ingestion.dto.EventIngestionDto.*;
 import com.supplysight.ingestion.entity.ProcessedEvent;
@@ -7,6 +11,10 @@ import com.supplysight.ingestion.entity.TrackingEventEntity;
 import com.supplysight.ingestion.repository.ProcessedEventRepository;
 import com.supplysight.ingestion.repository.TrackingEventRepository;
 import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
+import java.time.Instant;
+import java.util.Map;
+import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -16,32 +24,17 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.kafka.core.KafkaTemplate;
 
-import java.time.Instant;
-import java.util.Map;
-import java.util.UUID;
-import java.util.concurrent.CompletableFuture;
-
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.*;
-
-/**
- * Unit tests for EventIngestionService.
- */
+/** Unit tests for EventIngestionService. */
 @ExtendWith(MockitoExtension.class)
 class EventIngestionServiceTest {
 
-    @Mock
-    private TrackingEventRepository trackingEventRepository;
+    @Mock private TrackingEventRepository trackingEventRepository;
 
-    @Mock
-    private ProcessedEventRepository processedEventRepository;
+    @Mock private ProcessedEventRepository processedEventRepository;
 
-    @Mock
-    private KafkaTemplate<String, TrackingEvent> kafkaTemplate;
+    @Mock private KafkaTemplate<String, TrackingEvent> kafkaTemplate;
 
-    @Mock
-    private EventValidationService validationService;
+    @Mock private EventValidationService validationService;
 
     private EventIngestionService eventIngestionService;
 
@@ -51,13 +44,13 @@ class EventIngestionServiceTest {
 
     @BeforeEach
     void setUp() {
-        eventIngestionService = new EventIngestionService(
-                trackingEventRepository,
-                processedEventRepository,
-                kafkaTemplate,
-                validationService,
-                new SimpleMeterRegistry()
-        );
+        eventIngestionService =
+                new EventIngestionService(
+                        trackingEventRepository,
+                        processedEventRepository,
+                        kafkaTemplate,
+                        validationService,
+                        new SimpleMeterRegistry());
 
         eventId = UUID.randomUUID();
         tenantId = UUID.randomUUID();
@@ -76,7 +69,8 @@ class EventIngestionServiceTest {
                 .thenReturn(CompletableFuture.completedFuture(null));
 
         // When
-        IngestResponse response = eventIngestionService.ingestEvent(request, "127.0.0.1", UUID.randomUUID());
+        IngestResponse response =
+                eventIngestionService.ingestEvent(request, "127.0.0.1", UUID.randomUUID());
 
         // Then
         assertThat(response.status()).isEqualTo("ACCEPTED");
@@ -94,7 +88,8 @@ class EventIngestionServiceTest {
         when(processedEventRepository.existsByEventId(eventId)).thenReturn(true);
 
         // When
-        IngestResponse response = eventIngestionService.ingestEvent(request, "127.0.0.1", UUID.randomUUID());
+        IngestResponse response =
+                eventIngestionService.ingestEvent(request, "127.0.0.1", UUID.randomUUID());
 
         // Then
         assertThat(response.status()).isEqualTo("DUPLICATE");
@@ -111,7 +106,8 @@ class EventIngestionServiceTest {
         when(kafkaTemplate.send(any(), any(), any()))
                 .thenReturn(CompletableFuture.completedFuture(null));
 
-        ArgumentCaptor<TrackingEventEntity> entityCaptor = ArgumentCaptor.forClass(TrackingEventEntity.class);
+        ArgumentCaptor<TrackingEventEntity> entityCaptor =
+                ArgumentCaptor.forClass(TrackingEventEntity.class);
         when(trackingEventRepository.save(entityCaptor.capture()))
                 .thenAnswer(inv -> inv.getArgument(0));
 
@@ -192,8 +188,7 @@ class EventIngestionServiceTest {
                 "GPS_DEVICE",
                 null,
                 Map.of("speedKmph", 62),
-                null
-        );
+                null);
     }
 
     private IngestRequest createIngestRequestWithLocation() {
@@ -206,7 +201,6 @@ class EventIngestionServiceTest {
                 "GPS_DEVICE",
                 new Location(12.9716, 77.5946, "BLR-HUB-01"),
                 Map.of("speedKmph", 62),
-                new Metadata(UUID.randomUUID(), Instant.now())
-        );
+                new Metadata(UUID.randomUUID(), Instant.now()));
     }
 }

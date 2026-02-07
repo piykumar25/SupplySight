@@ -1,7 +1,11 @@
 package com.supplysight.gateway.filter;
 
+import com.supplysight.gateway.config.GatewayAuthConfig;
 import io.jsonwebtoken.*;
 import io.jsonwebtoken.security.Keys;
+import java.nio.charset.StandardCharsets;
+import java.util.List;
+import javax.crypto.SecretKey;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
@@ -16,15 +20,9 @@ import org.springframework.util.AntPathMatcher;
 import org.springframework.web.server.ServerWebExchange;
 import reactor.core.publisher.Mono;
 
-import javax.crypto.SecretKey;
-import java.nio.charset.StandardCharsets;
-import java.util.List;
-import com.supplysight.gateway.config.GatewayAuthConfig;
-
 /**
- * Global filter for JWT authentication.
- * Validates JWT tokens and extracts tenant/user information for downstream
- * services.
+ * Global filter for JWT authentication. Validates JWT tokens and extracts tenant/user information
+ * for downstream services.
  */
 @Component
 public class JwtAuthenticationFilter implements GlobalFilter, Ordered {
@@ -42,8 +40,7 @@ public class JwtAuthenticationFilter implements GlobalFilter, Ordered {
     private final AntPathMatcher pathMatcher = new AntPathMatcher();
 
     public JwtAuthenticationFilter(
-            @Value("${jwt.secret}") String secret,
-            GatewayAuthConfig authConfig) {
+            @Value("${jwt.secret}") String secret, GatewayAuthConfig authConfig) {
         this.secretKey = Keys.hmacShaKeyFor(secret.getBytes(StandardCharsets.UTF_8));
         this.authConfig = authConfig;
     }
@@ -85,12 +82,14 @@ public class JwtAuthenticationFilter implements GlobalFilter, Ordered {
             exchange.getAttributes().put("roles", rolesString);
 
             // Add headers for downstream services
-            ServerHttpRequest mutatedRequest = exchange.getRequest().mutate()
-                    .header("X-Tenant-ID", tenantId)
-                    .header("X-User-ID", userId)
-                    .header("X-Username", username)
-                    .header("X-User-Roles", rolesString)
-                    .build();
+            ServerHttpRequest mutatedRequest =
+                    exchange.getRequest()
+                            .mutate()
+                            .header("X-Tenant-ID", tenantId)
+                            .header("X-User-ID", userId)
+                            .header("X-Username", username)
+                            .header("X-User-Roles", rolesString)
+                            .build();
 
             return chain.filter(exchange.mutate().request(mutatedRequest).build());
 
@@ -110,11 +109,7 @@ public class JwtAuthenticationFilter implements GlobalFilter, Ordered {
     }
 
     private Claims validateToken(String token) {
-        return Jwts.parser()
-                .verifyWith(secretKey)
-                .build()
-                .parseSignedClaims(token)
-                .getPayload();
+        return Jwts.parser().verifyWith(secretKey).build().parseSignedClaims(token).getPayload();
     }
 
     private boolean isPublicPath(String path) {
@@ -126,13 +121,13 @@ public class JwtAuthenticationFilter implements GlobalFilter, Ordered {
         exchange.getResponse().setStatusCode(HttpStatus.UNAUTHORIZED);
         exchange.getResponse().getHeaders().add("Content-Type", "application/json");
 
-        String body = String.format(
-                "{\"success\":false,\"message\":\"%s\",\"data\":null,\"timestamp\":\"%s\"}",
-                message,
-                java.time.Instant.now().toString());
+        String body =
+                String.format(
+                        "{\"success\":false,\"message\":\"%s\",\"data\":null,\"timestamp\":\"%s\"}",
+                        message, java.time.Instant.now().toString());
 
-        return exchange.getResponse().writeWith(
-                Mono.just(exchange.getResponse().bufferFactory().wrap(body.getBytes())));
+        return exchange.getResponse()
+                .writeWith(Mono.just(exchange.getResponse().bufferFactory().wrap(body.getBytes())));
     }
 
     @Override

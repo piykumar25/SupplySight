@@ -1,11 +1,19 @@
 package com.supplysight.identity.service;
 
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.*;
+
 import com.supplysight.common.exception.DuplicateResourceException;
 import com.supplysight.common.exception.ResourceNotFoundException;
 import com.supplysight.identity.dto.TenantDto;
 import com.supplysight.identity.entity.Tenant;
 import com.supplysight.identity.entity.Tenant.TenantStatus;
 import com.supplysight.identity.repository.TenantRepository;
+import java.time.Instant;
+import java.util.Optional;
+import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -14,26 +22,13 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
-import java.time.Instant;
-import java.util.Optional;
-import java.util.UUID;
-
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.*;
-
-/**
- * Unit tests for TenantService.
- */
+/** Unit tests for TenantService. */
 @ExtendWith(MockitoExtension.class)
 class TenantServiceTest {
 
-    @Mock
-    private TenantRepository tenantRepository;
+    @Mock private TenantRepository tenantRepository;
 
-    @InjectMocks
-    private TenantService tenantService;
+    @InjectMocks private TenantService tenantService;
 
     private Tenant testTenant;
     private UUID tenantId;
@@ -53,15 +48,17 @@ class TenantServiceTest {
     @DisplayName("Should create tenant successfully")
     void createTenant_Success() {
         // Given
-        TenantDto.CreateRequest request = new TenantDto.CreateRequest(
-                "New Company", "new-company", "contact@new.com", null, null, null
-        );
+        TenantDto.CreateRequest request =
+                new TenantDto.CreateRequest(
+                        "New Company", "new-company", "contact@new.com", null, null, null);
         when(tenantRepository.existsByCode("new-company")).thenReturn(false);
-        when(tenantRepository.save(any(Tenant.class))).thenAnswer(invocation -> {
-            Tenant t = invocation.getArgument(0);
-            t.setCreatedAt(Instant.now());
-            return t;
-        });
+        when(tenantRepository.save(any(Tenant.class)))
+                .thenAnswer(
+                        invocation -> {
+                            Tenant t = invocation.getArgument(0);
+                            t.setCreatedAt(Instant.now());
+                            return t;
+                        });
 
         // When
         TenantDto.Response response = tenantService.createTenant(request);
@@ -78,9 +75,9 @@ class TenantServiceTest {
     @DisplayName("Should throw exception when creating tenant with duplicate code")
     void createTenant_DuplicateCode() {
         // Given
-        TenantDto.CreateRequest request = new TenantDto.CreateRequest(
-                "Duplicate Company", "existing-code", null, null, null, null
-        );
+        TenantDto.CreateRequest request =
+                new TenantDto.CreateRequest(
+                        "Duplicate Company", "existing-code", null, null, null, null);
         when(tenantRepository.existsByCode("existing-code")).thenReturn(true);
 
         // When/Then
@@ -121,9 +118,9 @@ class TenantServiceTest {
     @DisplayName("Should update tenant successfully")
     void updateTenant_Success() {
         // Given
-        TenantDto.UpdateRequest request = new TenantDto.UpdateRequest(
-                "Updated Company", "updated@example.com", null, null, null, null
-        );
+        TenantDto.UpdateRequest request =
+                new TenantDto.UpdateRequest(
+                        "Updated Company", "updated@example.com", null, null, null, null);
         when(tenantRepository.findById(tenantId)).thenReturn(Optional.of(testTenant));
         when(tenantRepository.save(any(Tenant.class))).thenReturn(testTenant);
 

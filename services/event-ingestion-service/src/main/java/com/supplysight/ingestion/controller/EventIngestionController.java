@@ -11,17 +11,14 @@ import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
+import java.util.UUID;
 import org.slf4j.MDC;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.UUID;
-
-/**
- * REST controller for event ingestion.
- */
+/** REST controller for event ingestion. */
 @RestController
 @RequestMapping("/api/v1/events")
 @Tag(name = "Event Ingestion", description = "Tracking event ingestion endpoints")
@@ -36,62 +33,65 @@ public class EventIngestionController {
 
     @PostMapping("/ingest")
     @Operation(summary = "Ingest Event", description = "Ingest a single tracking event")
-    @ApiResponses(value = {
-        @io.swagger.v3.oas.annotations.responses.ApiResponse(
-            responseCode = "202",
-            description = "Event accepted for processing",
-            content = @Content(schema = @Schema(implementation = IngestResponse.class))
-        ),
-        @io.swagger.v3.oas.annotations.responses.ApiResponse(
-            responseCode = "400",
-            description = "Invalid event data"
-        ),
-        @io.swagger.v3.oas.annotations.responses.ApiResponse(
-            responseCode = "409",
-            description = "Duplicate event"
-        )
-    })
+    @ApiResponses(
+            value = {
+                @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                        responseCode = "202",
+                        description = "Event accepted for processing",
+                        content =
+                                @Content(schema = @Schema(implementation = IngestResponse.class))),
+                @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                        responseCode = "400",
+                        description = "Invalid event data"),
+                @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                        responseCode = "409",
+                        description = "Duplicate event")
+            })
     @PreAuthorize("hasAnyRole('ADMIN', 'OPS_USER')")
     public ResponseEntity<ApiResponse<IngestResponse>> ingestEvent(
-            @Valid @RequestBody IngestRequest request,
-            HttpServletRequest httpRequest
-    ) {
+            @Valid @RequestBody IngestRequest request, HttpServletRequest httpRequest) {
         String sourceIp = getClientIp(httpRequest);
         UUID correlationId = getCorrelationId();
 
         // Validate tenant access
         validateTenantAccess(request.tenantId());
 
-        IngestResponse response = eventIngestionService.ingestEvent(request, sourceIp, correlationId);
+        IngestResponse response =
+                eventIngestionService.ingestEvent(request, sourceIp, correlationId);
 
-        HttpStatus status = switch (response.status()) {
-            case "ACCEPTED" -> HttpStatus.ACCEPTED;
-            case "DUPLICATE" -> HttpStatus.OK; // Idempotent - return OK for duplicates
-            case "REJECTED" -> HttpStatus.BAD_REQUEST;
-            default -> HttpStatus.INTERNAL_SERVER_ERROR;
-        };
+        HttpStatus status =
+                switch (response.status()) {
+                    case "ACCEPTED" -> HttpStatus.ACCEPTED;
+                    case "DUPLICATE" -> HttpStatus.OK; // Idempotent - return OK for duplicates
+                    case "REJECTED" -> HttpStatus.BAD_REQUEST;
+                    default -> HttpStatus.INTERNAL_SERVER_ERROR;
+                };
 
         return ResponseEntity.status(status).body(ApiResponse.success(response));
     }
 
     @PostMapping("/ingest/batch")
-    @Operation(summary = "Batch Ingest Events", description = "Ingest multiple tracking events in a batch")
-    @ApiResponses(value = {
-        @io.swagger.v3.oas.annotations.responses.ApiResponse(
-            responseCode = "202",
-            description = "Batch processed",
-            content = @Content(schema = @Schema(implementation = BatchIngestResponse.class))
-        ),
-        @io.swagger.v3.oas.annotations.responses.ApiResponse(
-            responseCode = "400",
-            description = "Invalid batch data"
-        )
-    })
+    @Operation(
+            summary = "Batch Ingest Events",
+            description = "Ingest multiple tracking events in a batch")
+    @ApiResponses(
+            value = {
+                @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                        responseCode = "202",
+                        description = "Batch processed",
+                        content =
+                                @Content(
+                                        schema =
+                                                @Schema(
+                                                        implementation =
+                                                                BatchIngestResponse.class))),
+                @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                        responseCode = "400",
+                        description = "Invalid batch data")
+            })
     @PreAuthorize("hasAnyRole('ADMIN', 'OPS_USER')")
     public ResponseEntity<ApiResponse<BatchIngestResponse>> ingestBatch(
-            @Valid @RequestBody BatchIngestRequest request,
-            HttpServletRequest httpRequest
-    ) {
+            @Valid @RequestBody BatchIngestRequest request, HttpServletRequest httpRequest) {
         String sourceIp = getClientIp(httpRequest);
         UUID correlationId = getCorrelationId();
 
@@ -100,25 +100,29 @@ public class EventIngestionController {
         for (IngestRequest event : request.events()) {
             if (!event.tenantId().equals(tenantId) && !isAdmin()) {
                 return ResponseEntity.status(HttpStatus.FORBIDDEN)
-                        .body(ApiResponse.error("FORBIDDEN", "Cannot ingest events for other tenants"));
+                        .body(
+                                ApiResponse.error(
+                                        "FORBIDDEN", "Cannot ingest events for other tenants"));
             }
         }
 
-        BatchIngestResponse response = eventIngestionService.ingestBatch(request, sourceIp, correlationId);
+        BatchIngestResponse response =
+                eventIngestionService.ingestBatch(request, sourceIp, correlationId);
         return ResponseEntity.status(HttpStatus.ACCEPTED).body(ApiResponse.success(response));
     }
 
     @GetMapping("/status/{eventId}")
     @Operation(summary = "Check Event Status", description = "Check if an event has been processed")
     public ResponseEntity<ApiResponse<EventStatusResponse>> checkEventStatus(
-            @PathVariable UUID eventId
-    ) {
+            @PathVariable UUID eventId) {
         boolean processed = eventIngestionService.isEventProcessed(eventId);
-        EventStatusResponse response = new EventStatusResponse(
-                eventId,
-                processed ? "PROCESSED" : "NOT_FOUND",
-                processed ? "Event has been processed" : "Event not found in processed events"
-        );
+        EventStatusResponse response =
+                new EventStatusResponse(
+                        eventId,
+                        processed ? "PROCESSED" : "NOT_FOUND",
+                        processed
+                                ? "Event has been processed"
+                                : "Event not found in processed events");
         return ResponseEntity.ok(ApiResponse.success(response));
     }
 
@@ -128,8 +132,7 @@ public class EventIngestionController {
         UUID contextTenantId = TenantContext.getTenantId();
         if (!requestTenantId.equals(contextTenantId) && !isAdmin()) {
             throw new com.supplysight.common.exception.ForbiddenException(
-                    "Cannot ingest events for other tenants"
-            );
+                    "Cannot ingest events for other tenants");
         }
     }
 
@@ -161,12 +164,6 @@ public class EventIngestionController {
         return UUID.randomUUID();
     }
 
-    /**
-     * Response for event status check.
-     */
-    public record EventStatusResponse(
-            UUID eventId,
-            String status,
-            String message
-    ) {}
+    /** Response for event status check. */
+    public record EventStatusResponse(UUID eventId, String status, String message) {}
 }

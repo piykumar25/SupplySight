@@ -1,15 +1,14 @@
 package com.supplysight.common.entity;
 
+import com.supplysight.common.security.TenantContext;
 import jakarta.persistence.Column;
 import jakarta.persistence.MappedSuperclass;
 import jakarta.persistence.PrePersist;
-import com.supplysight.common.security.TenantContext;
-
 import java.util.UUID;
 
 /**
- * Base entity for tenant-scoped entities.
- * Automatically sets tenantId from TenantContext on persist.
+ * Base entity for tenant-scoped entities. Automatically sets tenantId from TenantContext on
+ * persist.
  */
 @MappedSuperclass
 public abstract class TenantAwareEntity extends BaseEntity {

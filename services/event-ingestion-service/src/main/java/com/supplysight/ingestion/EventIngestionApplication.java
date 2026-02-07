@@ -5,9 +5,7 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.data.jpa.repository.config.EnableJpaAuditing;
 import org.springframework.kafka.annotation.EnableKafka;
 
-/**
- * Event Ingestion Service - Validates, deduplicates, and publishes tracking events.
- */
+/** Event Ingestion Service - Validates, deduplicates, and publishes tracking events. */
 @SpringBootApplication(scanBasePackages = {"com.supplysight.ingestion", "com.supplysight.common"})
 @EnableJpaAuditing
 @EnableKafka

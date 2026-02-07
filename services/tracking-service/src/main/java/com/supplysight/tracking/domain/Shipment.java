@@ -1,15 +1,14 @@
 package com.supplysight.tracking.domain;
 
-import jakarta.persistence.*;
+import com.supplysight.common.entity.TenantAwareEntity;
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.Table;
 import java.time.LocalDateTime;
 
 @Entity
 @Table(name = "shipments")
-public class Shipment {
-
-    @Id
-    @GeneratedValue(strategy = GenerationType.UUID)
-    private String id;
+public class Shipment extends TenantAwareEntity {
 
     @Column(nullable = false, unique = true)
     private String trackingNumber;
@@ -24,29 +23,11 @@ public class Shipment {
 
     private LocalDateTime estimatedDelivery;
 
-    private LocalDateTime createdAt;
-    private LocalDateTime updatedAt;
-
-    @PrePersist
-    protected void onCreate() {
-        createdAt = LocalDateTime.now();
-        updatedAt = LocalDateTime.now();
-    }
-
-    @PreUpdate
-    protected void onUpdate() {
-        updatedAt = LocalDateTime.now();
+    public Shipment() {
+        super();
     }
 
     // Getters and Setters
-
-    public String getId() {
-        return id;
-    }
-
-    public void setId(String id) {
-        this.id = id;
-    }
 
     public String getTrackingNumber() {
         return trackingNumber;
@@ -86,21 +67,5 @@ public class Shipment {
 
     public void setEstimatedDelivery(LocalDateTime estimatedDelivery) {
         this.estimatedDelivery = estimatedDelivery;
-    }
-
-    public LocalDateTime getCreatedAt() {
-        return createdAt;
-    }
-
-    public void setCreatedAt(LocalDateTime createdAt) {
-        this.createdAt = createdAt;
-    }
-
-    public LocalDateTime getUpdatedAt() {
-        return updatedAt;
-    }
-
-    public void setUpdatedAt(LocalDateTime updatedAt) {
-        this.updatedAt = updatedAt;
     }
 }

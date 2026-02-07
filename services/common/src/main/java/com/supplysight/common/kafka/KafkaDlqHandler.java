@@ -1,5 +1,8 @@
 package com.supplysight.common.kafka;
 
+import java.nio.charset.StandardCharsets;
+import java.time.Instant;
+import java.util.Optional;
 import org.apache.kafka.clients.consumer.Consumer;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.producer.ProducerRecord;
@@ -13,15 +16,11 @@ import org.springframework.kafka.listener.CommonErrorHandler;
 import org.springframework.kafka.listener.MessageListenerContainer;
 import org.springframework.stereotype.Component;
 
-import java.nio.charset.StandardCharsets;
-import java.time.Instant;
-import java.util.Optional;
-
 /**
  * Dead Letter Queue (DLQ) Handler for Kafka message processing failures.
- * 
- * When a message fails processing after all retries, it's sent to a DLQ topic
- * with additional error metadata for later analysis and reprocessing.
+ *
+ * <p>When a message fails processing after all retries, it's sent to a DLQ topic with additional
+ * error metadata for later analysis and reprocessing.
  */
 @Component
 public class KafkaDlqHandler {
@@ -52,28 +51,29 @@ public class KafkaDlqHandler {
 
     /**
      * Send a failed message to the Dead Letter Queue.
-     * 
-     * @param record     The original consumer record that failed
-     * @param exception  The exception that caused the failure
+     *
+     * @param record The original consumer record that failed
+     * @param exception The exception that caused the failure
      * @param retryCount Number of retry attempts made
      */
     public void sendToDlq(ConsumerRecord<String, ?> record, Exception exception, int retryCount) {
         if (!dlqEnabled) {
-            log.warn("DLQ is disabled. Failed message from topic={} partition={} offset={} will be lost",
-                    record.topic(), record.partition(), record.offset());
+            log.warn(
+                    "DLQ is disabled. Failed message from topic={} partition={} offset={} will be lost",
+                    record.topic(),
+                    record.partition(),
+                    record.offset());
             return;
         }
 
         String dlqTopic = record.topic() + dlqTopicSuffix;
-        String correlationId = extractHeader(record, "correlationId")
-                .orElse(MDC.get("correlationId"));
+        String correlationId =
+                extractHeader(record, "correlationId").orElse(MDC.get("correlationId"));
 
         try {
-            ProducerRecord<String, Object> dlqRecord = new ProducerRecord<>(
-                    dlqTopic,
-                    record.partition(),
-                    record.key(),
-                    record.value());
+            ProducerRecord<String, Object> dlqRecord =
+                    new ProducerRecord<>(
+                            dlqTopic, record.partition(), record.key(), record.value());
 
             // Add original message metadata
             addHeader(dlqRecord, HEADER_ORIGINAL_TOPIC, record.topic());
@@ -93,22 +93,31 @@ public class KafkaDlqHandler {
             }
 
             // Copy original headers
-            record.headers().forEach(header -> {
-                if (!header.key().startsWith("x-")) {
-                    dlqRecord.headers().add(header);
-                }
-            });
+            record.headers()
+                    .forEach(
+                            header -> {
+                                if (!header.key().startsWith("x-")) {
+                                    dlqRecord.headers().add(header);
+                                }
+                            });
 
-            kafkaTemplate.send(dlqRecord).whenComplete((result, ex) -> {
-                if (ex != null) {
-                    log.error("Failed to send message to DLQ topic={}: {}", dlqTopic, ex.getMessage());
-                } else {
-                    log.info("Message sent to DLQ topic={} partition={} offset={}",
-                            result.getRecordMetadata().topic(),
-                            result.getRecordMetadata().partition(),
-                            result.getRecordMetadata().offset());
-                }
-            });
+            kafkaTemplate
+                    .send(dlqRecord)
+                    .whenComplete(
+                            (result, ex) -> {
+                                if (ex != null) {
+                                    log.error(
+                                            "Failed to send message to DLQ topic={}: {}",
+                                            dlqTopic,
+                                            ex.getMessage());
+                                } else {
+                                    log.info(
+                                            "Message sent to DLQ topic={} partition={} offset={}",
+                                            result.getRecordMetadata().topic(),
+                                            result.getRecordMetadata().partition(),
+                                            result.getRecordMetadata().offset());
+                                }
+                            });
 
         } catch (Exception e) {
             log.error("Failed to send to DLQ topic={}: {}", dlqTopic, e.getMessage(), e);
@@ -116,14 +125,17 @@ public class KafkaDlqHandler {
     }
 
     /**
-     * Creates a CommonErrorHandler that sends failed messages to DLQ.
-     * Compatible with Spring Kafka 3.x.
+     * Creates a CommonErrorHandler that sends failed messages to DLQ. Compatible with Spring Kafka
+     * 3.x.
      */
     public CommonErrorHandler createDlqErrorHandler() {
         return new CommonErrorHandler() {
             @Override
-            public boolean handleOne(Exception exception, ConsumerRecord<?, ?> record,
-                    Consumer<?, ?> consumer, MessageListenerContainer container) {
+            public boolean handleOne(
+                    Exception exception,
+                    ConsumerRecord<?, ?> record,
+                    Consumer<?, ?> consumer,
+                    MessageListenerContainer container) {
                 @SuppressWarnings("unchecked")
                 ConsumerRecord<String, ?> typedRecord = (ConsumerRecord<String, ?>) record;
                 int retryCount = extractRetryCount(typedRecord);
@@ -133,13 +145,9 @@ public class KafkaDlqHandler {
         };
     }
 
-    /**
-     * Extract retry count from a consumer record.
-     */
+    /** Extract retry count from a consumer record. */
     public int extractRetryCount(ConsumerRecord<String, ?> record) {
-        return extractHeader(record, HEADER_RETRY_COUNT)
-                .map(Integer::parseInt)
-                .orElse(0);
+        return extractHeader(record, HEADER_RETRY_COUNT).map(Integer::parseInt).orElse(0);
     }
 
     private void addHeader(ProducerRecord<String, Object> record, String key, String value) {
@@ -158,18 +166,19 @@ public class KafkaDlqHandler {
 
     private String getStackTrace(Exception exception) {
         StringBuilder sb = new StringBuilder();
-        sb.append(exception.getClass().getName()).append(": ").append(exception.getMessage()).append("\n");
+        sb.append(exception.getClass().getName())
+                .append(": ")
+                .append(exception.getMessage())
+                .append("\n");
         for (StackTraceElement element : exception.getStackTrace()) {
-            if (sb.length() > 1500)
-                break;
+            if (sb.length() > 1500) break;
             sb.append("\tat ").append(element.toString()).append("\n");
         }
         return sb.toString();
     }
 
     private String truncate(String str, int maxLength) {
-        if (str == null)
-            return "";
+        if (str == null) return "";
         return str.length() > maxLength ? str.substring(0, maxLength) + "..." : str;
     }
 }

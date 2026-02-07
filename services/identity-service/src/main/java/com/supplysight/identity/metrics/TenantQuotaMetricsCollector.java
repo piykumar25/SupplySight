@@ -1,24 +1,21 @@
 package com.supplysight.identity.metrics;
 
-import com.supplysight.identity.repository.TenantQuotaRepository;
 import com.supplysight.identity.entity.TenantQuota;
+import com.supplysight.identity.repository.TenantQuotaRepository;
 import io.micrometer.core.instrument.Gauge;
 import io.micrometer.core.instrument.MeterRegistry;
+import java.util.List;
+import java.util.Map;
+import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.atomic.AtomicLong;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
-import java.util.List;
-import java.util.Map;
-import java.util.UUID;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.atomic.AtomicLong;
-
-/**
- * Collects and exposes tenant quota usage metrics to Prometheus.
- */
+/** Collects and exposes tenant quota usage metrics to Prometheus. */
 @Component
 public class TenantQuotaMetricsCollector {
 
@@ -44,9 +41,7 @@ public class TenantQuotaMetricsCollector {
         this.meterRegistry = meterRegistry;
     }
 
-    /**
-     * Periodically collect and update quota metrics for all tenants.
-     */
+    /** Periodically collect and update quota metrics for all tenants. */
     @Scheduled(fixedRate = 30000) // Every 30 seconds
     public void collectMetrics() {
         try {
@@ -78,7 +73,8 @@ public class TenantQuotaMetricsCollector {
         registerOrUpdateGauge("tenant_quota_shipments_limit", tenantId, maxShipments, limitGauges);
 
         double percentage = maxShipments > 0 ? (double) currentUsage / maxShipments * 100 : 0;
-        registerOrUpdatePercentageGauge("tenant_quota_shipments_percent", tenantId, percentage, percentageGauges);
+        registerOrUpdatePercentageGauge(
+                "tenant_quota_shipments_percent", tenantId, percentage, percentageGauges);
     }
 
     private void collectEventsPerSecondMetrics(String tenantId, int maxEventsPerSecond) {
@@ -95,7 +91,8 @@ public class TenantQuotaMetricsCollector {
         registerOrUpdateGauge("tenant_quota_eps_limit", tenantId, maxEventsPerSecond, limitGauges);
 
         double percentage = maxEventsPerSecond > 0 ? (double) avgEps / maxEventsPerSecond * 100 : 0;
-        registerOrUpdatePercentageGauge("tenant_quota_eps_percent", tenantId, percentage, percentageGauges);
+        registerOrUpdatePercentageGauge(
+                "tenant_quota_eps_percent", tenantId, percentage, percentageGauges);
     }
 
     private void collectSseConnectionMetrics(String tenantId, int maxSseConnections) {
@@ -105,25 +102,31 @@ public class TenantQuotaMetricsCollector {
         registerOrUpdateGauge("tenant_quota_sse_usage", tenantId, currentUsage, usageGauges);
         registerOrUpdateGauge("tenant_quota_sse_limit", tenantId, maxSseConnections, limitGauges);
 
-        double percentage = maxSseConnections > 0 ? (double) currentUsage / maxSseConnections * 100 : 0;
-        registerOrUpdatePercentageGauge("tenant_quota_sse_percent", tenantId, percentage, percentageGauges);
+        double percentage =
+                maxSseConnections > 0 ? (double) currentUsage / maxSseConnections * 100 : 0;
+        registerOrUpdatePercentageGauge(
+                "tenant_quota_sse_percent", tenantId, percentage, percentageGauges);
     }
 
-    private void registerOrUpdateGauge(String name, String tenantId, long value, Map<String, AtomicLong> cache) {
+    private void registerOrUpdateGauge(
+            String name, String tenantId, long value, Map<String, AtomicLong> cache) {
         String cacheKey = name + ":" + tenantId;
-        AtomicLong gauge = cache.computeIfAbsent(cacheKey, k -> {
-            AtomicLong newGauge = new AtomicLong(value);
-            Gauge.builder(name, newGauge, AtomicLong::get)
-                    .tag("tenant_id", tenantId)
-                    .description("Tenant quota metric: " + name)
-                    .register(meterRegistry);
-            return newGauge;
-        });
+        AtomicLong gauge =
+                cache.computeIfAbsent(
+                        cacheKey,
+                        k -> {
+                            AtomicLong newGauge = new AtomicLong(value);
+                            Gauge.builder(name, newGauge, AtomicLong::get)
+                                    .tag("tenant_id", tenantId)
+                                    .description("Tenant quota metric: " + name)
+                                    .register(meterRegistry);
+                            return newGauge;
+                        });
         gauge.set(value);
     }
 
-    private void registerOrUpdatePercentageGauge(String name, String tenantId, double value,
-            Map<String, AtomicLong> cache) {
+    private void registerOrUpdatePercentageGauge(
+            String name, String tenantId, double value, Map<String, AtomicLong> cache) {
         registerOrUpdateGauge(name, tenantId, (long) value, cache);
     }
 

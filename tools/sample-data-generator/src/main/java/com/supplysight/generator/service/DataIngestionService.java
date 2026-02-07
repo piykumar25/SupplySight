@@ -1,6 +1,8 @@
 package com.supplysight.generator.service;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import java.time.Duration;
+import java.util.Map;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -9,15 +11,8 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.stereotype.Service;
 import org.springframework.web.reactive.function.client.WebClient;
-import reactor.core.publisher.Mono;
 
-import java.time.Duration;
-import java.util.Map;
-import java.util.UUID;
-
-/**
- * Service for ingesting generated data into the platform via API Gateway.
- */
+/** Service for ingesting generated data into the platform via API Gateway. */
 @Service
 public class DataIngestionService {
 
@@ -26,22 +21,21 @@ public class DataIngestionService {
     @Value("${gateway.url}")
     private String gatewayUrl;
 
-    @Autowired
-    private ObjectMapper objectMapper;
+    @Autowired private ObjectMapper objectMapper;
 
-    @Autowired
-    private WebClient.Builder webClientBuilder;
+    @Autowired private WebClient.Builder webClientBuilder;
 
     private WebClient webClient;
     private String accessToken;
 
     public void setAccessToken(String token) {
         this.accessToken = token;
-        this.webClient = webClientBuilder
-                .baseUrl(gatewayUrl)
-                .defaultHeader(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
-                .defaultHeader(HttpHeaders.AUTHORIZATION, "Bearer " + token)
-                .build();
+        this.webClient =
+                webClientBuilder
+                        .baseUrl(gatewayUrl)
+                        .defaultHeader(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
+                        .defaultHeader(HttpHeaders.AUTHORIZATION, "Bearer " + token)
+                        .build();
     }
 
     public void ingestShipment(DataGeneratorService.ShipmentData shipment) {
@@ -50,23 +44,27 @@ public class DataIngestionService {
             return;
         }
 
-        Map<String, Object> shipmentData = Map.of(
-                "trackingNumber", shipment.getTrackingNumber(),
-                "originCity", shipment.getOriginCity(),
-                "destinationCity", shipment.getDestinationCity(),
-                "weightKg", shipment.getWeightKg(),
-                "value", shipment.getValue()
-        );
+        Map<String, Object> shipmentData =
+                Map.of(
+                        "trackingNumber", shipment.getTrackingNumber(),
+                        "originCity", shipment.getOriginCity(),
+                        "destinationCity", shipment.getDestinationCity(),
+                        "weightKg", shipment.getWeightKg(),
+                        "value", shipment.getValue());
 
         try {
-            webClient.post()
+            webClient
+                    .post()
                     .uri("/api/v1/tracking/shipments")
                     .bodyValue(shipmentData)
                     .retrieve()
                     .bodyToMono(String.class)
                     .timeout(Duration.ofSeconds(10))
-                    .doOnSuccess(response -> log.debug("Ingested shipment: {}", shipment.getShipmentId()))
-                    .doOnError(error -> log.error("Failed to ingest shipment: {}", error.getMessage()))
+                    .doOnSuccess(
+                            response ->
+                                    log.debug("Ingested shipment: {}", shipment.getShipmentId()))
+                    .doOnError(
+                            error -> log.error("Failed to ingest shipment: {}", error.getMessage()))
                     .block();
         } catch (Exception e) {
             log.error("Error ingesting shipment {}: {}", shipment.getShipmentId(), e.getMessage());
@@ -86,7 +84,7 @@ public class DataIngestionService {
         eventData.put("eventType", event.getEventType());
         eventData.put("eventTime", event.getEventTime().toString());
         eventData.put("source", event.getSource());
-        
+
         if (event.getLat() != null && event.getLon() != null) {
             Map<String, Object> location = new java.util.HashMap<>();
             location.put("lat", event.getLat());
@@ -96,20 +94,25 @@ public class DataIngestionService {
             }
             eventData.put("location", location);
         }
-        
+
         if (event.getPayload() != null) {
             eventData.put("payload", event.getPayload());
         }
 
         try {
-            webClient.post()
+            webClient
+                    .post()
                     .uri("/api/v1/events/ingest")
                     .bodyValue(eventData)
                     .retrieve()
                     .bodyToMono(String.class)
                     .timeout(Duration.ofSeconds(10))
-                    .doOnSuccess(response -> log.debug("Ingested event: {} for shipment: {}", 
-                            event.getEventId(), event.getShipmentId()))
+                    .doOnSuccess(
+                            response ->
+                                    log.debug(
+                                            "Ingested event: {} for shipment: {}",
+                                            event.getEventId(),
+                                            event.getShipmentId()))
                     .doOnError(error -> log.error("Failed to ingest event: {}", error.getMessage()))
                     .block();
         } catch (Exception e) {

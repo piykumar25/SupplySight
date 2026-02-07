@@ -6,6 +6,9 @@ import io.micrometer.core.instrument.Timer;
 import jakarta.servlet.*;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import java.io.IOException;
+import java.util.UUID;
+import java.util.concurrent.TimeUnit;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.slf4j.MDC;
@@ -15,13 +18,9 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.util.ContentCachingRequestWrapper;
 import org.springframework.web.util.ContentCachingResponseWrapper;
 
-import java.io.IOException;
-import java.util.UUID;
-import java.util.concurrent.TimeUnit;
-
 /**
- * HTTP filter for observability metrics and logging context.
- * Captures request/response size, latency, and propagates correlation IDs.
+ * HTTP filter for observability metrics and logging context. Captures request/response size,
+ * latency, and propagates correlation IDs.
  */
 @Component
 @Order(Ordered.HIGHEST_PRECEDENCE)
@@ -38,29 +37,31 @@ public class ObservabilityFilter implements Filter {
     private final Counter errorCounter;
 
     public ObservabilityFilter(
-            TracingConfig.TracingSpanCustomizer spanCustomizer,
-            MeterRegistry meterRegistry) {
+            TracingConfig.TracingSpanCustomizer spanCustomizer, MeterRegistry meterRegistry) {
         this.spanCustomizer = spanCustomizer;
 
-        this.requestTimer = Timer.builder("http.server.requests.duration")
-                .description("HTTP server request duration with detailed tags")
-                .register(meterRegistry);
+        this.requestTimer =
+                Timer.builder("http.server.requests.duration")
+                        .description("HTTP server request duration with detailed tags")
+                        .register(meterRegistry);
 
-        this.requestCounter = Counter.builder("http.server.requests.total")
-                .description("Total HTTP requests")
-                .register(meterRegistry);
+        this.requestCounter =
+                Counter.builder("http.server.requests.total")
+                        .description("Total HTTP requests")
+                        .register(meterRegistry);
 
-        this.errorCounter = Counter.builder("http.server.requests.errors")
-                .description("HTTP request errors (5xx)")
-                .register(meterRegistry);
+        this.errorCounter =
+                Counter.builder("http.server.requests.errors")
+                        .description("HTTP request errors (5xx)")
+                        .register(meterRegistry);
     }
 
     @Override
     public void doFilter(ServletRequest request, ServletResponse response, FilterChain chain)
             throws IOException, ServletException {
 
-        if (!(request instanceof HttpServletRequest httpRequest) ||
-                !(response instanceof HttpServletResponse httpResponse)) {
+        if (!(request instanceof HttpServletRequest httpRequest)
+                || !(response instanceof HttpServletResponse httpResponse)) {
             chain.doFilter(request, response);
             return;
         }
@@ -68,13 +69,15 @@ public class ObservabilityFilter implements Filter {
         long startTime = System.nanoTime();
 
         // Wrap request/response for size calculation
-        ContentCachingRequestWrapper wrappedRequest = request instanceof ContentCachingRequestWrapper
-                ? (ContentCachingRequestWrapper) request
-                : new ContentCachingRequestWrapper(httpRequest);
+        ContentCachingRequestWrapper wrappedRequest =
+                request instanceof ContentCachingRequestWrapper
+                        ? (ContentCachingRequestWrapper) request
+                        : new ContentCachingRequestWrapper(httpRequest);
 
-        ContentCachingResponseWrapper wrappedResponse = response instanceof ContentCachingResponseWrapper
-                ? (ContentCachingResponseWrapper) response
-                : new ContentCachingResponseWrapper(httpResponse);
+        ContentCachingResponseWrapper wrappedResponse =
+                response instanceof ContentCachingResponseWrapper
+                        ? (ContentCachingResponseWrapper) response
+                        : new ContentCachingResponseWrapper(httpResponse);
 
         // Extract or generate correlation ID
         String correlationId = httpRequest.getHeader(X_CORRELATION_ID);
@@ -102,9 +105,10 @@ public class ObservabilityFilter implements Filter {
             String uri = getCleanUri(httpRequest.getRequestURI());
 
             // Calculate sizes
-            int requestSize = wrappedRequest.getContentLength() > 0
-                    ? wrappedRequest.getContentLength()
-                    : wrappedRequest.getContentAsByteArray().length;
+            int requestSize =
+                    wrappedRequest.getContentLength() > 0
+                            ? wrappedRequest.getContentLength()
+                            : wrappedRequest.getContentAsByteArray().length;
             int responseSize = wrappedResponse.getContentSize();
 
             // Log with context
@@ -123,10 +127,14 @@ public class ObservabilityFilter implements Filter {
 
             // Log request completion
             if (log.isDebugEnabled() || status >= 400) {
-                log.info("HTTP {} {} - {} ({}ms, req={}B, res={}B)",
-                        method, uri, status,
+                log.info(
+                        "HTTP {} {} - {} ({}ms, req={}B, res={}B)",
+                        method,
+                        uri,
+                        status,
                         TimeUnit.NANOSECONDS.toMillis(duration),
-                        requestSize, responseSize);
+                        requestSize,
+                        responseSize);
             }
 
             // Copy content to response
@@ -141,14 +149,13 @@ public class ObservabilityFilter implements Filter {
         }
     }
 
-    /**
-     * Normalize URI for metrics (remove UUIDs and numeric IDs).
-     */
+    /** Normalize URI for metrics (remove UUIDs and numeric IDs). */
     private String getCleanUri(String uri) {
-        if (uri == null)
-            return "unknown";
+        if (uri == null) return "unknown";
         // Replace UUIDs with placeholder
-        uri = uri.replaceAll("[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}", "{id}");
+        uri =
+                uri.replaceAll(
+                        "[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}", "{id}");
         // Replace numeric IDs with placeholder
         uri = uri.replaceAll("/\\d+(/|$)", "/{id}$1");
         return uri;

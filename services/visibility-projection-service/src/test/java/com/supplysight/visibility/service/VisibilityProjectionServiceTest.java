@@ -1,11 +1,18 @@
 package com.supplysight.visibility.service;
 
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.*;
+
 import com.supplysight.common.event.TrackingEvent;
 import com.supplysight.visibility.entity.ShipmentCurrentState;
 import com.supplysight.visibility.entity.ShipmentTimeline;
 import com.supplysight.visibility.repository.ShipmentCurrentStateRepository;
 import com.supplysight.visibility.repository.ShipmentTimelineRepository;
 import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
+import java.time.Instant;
+import java.util.Optional;
+import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -14,25 +21,13 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
-import java.time.Instant;
-import java.util.Optional;
-import java.util.UUID;
-
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.*;
-
-/**
- * Unit tests for VisibilityProjectionService.
- */
+/** Unit tests for VisibilityProjectionService. */
 @ExtendWith(MockitoExtension.class)
 class VisibilityProjectionServiceTest {
 
-    @Mock
-    private ShipmentCurrentStateRepository currentStateRepository;
+    @Mock private ShipmentCurrentStateRepository currentStateRepository;
 
-    @Mock
-    private ShipmentTimelineRepository timelineRepository;
+    @Mock private ShipmentTimelineRepository timelineRepository;
 
     private VisibilityProjectionService projectionService;
 
@@ -42,11 +37,9 @@ class VisibilityProjectionServiceTest {
 
     @BeforeEach
     void setUp() {
-        projectionService = new VisibilityProjectionService(
-                currentStateRepository,
-                timelineRepository,
-                new SimpleMeterRegistry()
-        );
+        projectionService =
+                new VisibilityProjectionService(
+                        currentStateRepository, timelineRepository, new SimpleMeterRegistry());
 
         tenantId = UUID.randomUUID();
         shipmentId = UUID.randomUUID();
@@ -67,10 +60,11 @@ class VisibilityProjectionServiceTest {
 
         // Then
         verify(timelineRepository).save(any(ShipmentTimeline.class));
-        
-        ArgumentCaptor<ShipmentCurrentState> stateCaptor = ArgumentCaptor.forClass(ShipmentCurrentState.class);
+
+        ArgumentCaptor<ShipmentCurrentState> stateCaptor =
+                ArgumentCaptor.forClass(ShipmentCurrentState.class);
         verify(currentStateRepository).save(stateCaptor.capture());
-        
+
         ShipmentCurrentState savedState = stateCaptor.getValue();
         assertThat(savedState.getShipmentId()).isEqualTo(shipmentId);
         assertThat(savedState.getTenantId()).isEqualTo(tenantId);
@@ -101,7 +95,8 @@ class VisibilityProjectionServiceTest {
         projectionService.projectEvent(event);
 
         // Then
-        ArgumentCaptor<ShipmentCurrentState> stateCaptor = ArgumentCaptor.forClass(ShipmentCurrentState.class);
+        ArgumentCaptor<ShipmentCurrentState> stateCaptor =
+                ArgumentCaptor.forClass(ShipmentCurrentState.class);
         verify(currentStateRepository).save(stateCaptor.capture());
 
         ShipmentCurrentState savedState = stateCaptor.getValue();
@@ -134,7 +129,8 @@ class VisibilityProjectionServiceTest {
         projectionService.projectEvent(oldEvent);
 
         // Then
-        ArgumentCaptor<ShipmentCurrentState> stateCaptor = ArgumentCaptor.forClass(ShipmentCurrentState.class);
+        ArgumentCaptor<ShipmentCurrentState> stateCaptor =
+                ArgumentCaptor.forClass(ShipmentCurrentState.class);
         verify(currentStateRepository).save(stateCaptor.capture());
 
         ShipmentCurrentState savedState = stateCaptor.getValue();
@@ -158,7 +154,8 @@ class VisibilityProjectionServiceTest {
         projectionService.projectEvent(event);
 
         // Then
-        ArgumentCaptor<ShipmentTimeline> timelineCaptor = ArgumentCaptor.forClass(ShipmentTimeline.class);
+        ArgumentCaptor<ShipmentTimeline> timelineCaptor =
+                ArgumentCaptor.forClass(ShipmentTimeline.class);
         verify(timelineRepository).save(timelineCaptor.capture());
 
         ShipmentTimeline savedTimeline = timelineCaptor.getValue();
@@ -198,8 +195,7 @@ class VisibilityProjectionServiceTest {
                 "GPS_DEVICE",
                 null,
                 null,
-                null
-        );
+                null);
     }
 
     private TrackingEvent createEventWithLocation(Instant eventTime) {
@@ -212,7 +208,6 @@ class VisibilityProjectionServiceTest {
                 "GPS_DEVICE",
                 new TrackingEvent.Location(12.9716, 77.5946, "BLR-HUB-01"),
                 null,
-                null
-        );
+                null);
     }
 }

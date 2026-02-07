@@ -10,13 +10,6 @@ import com.supplysight.identity.entity.User;
 import com.supplysight.identity.repository.RefreshTokenRepository;
 import com.supplysight.identity.repository.TenantRepository;
 import com.supplysight.identity.repository.UserRepository;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.security.crypto.password.PasswordEncoder;
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
-
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
@@ -24,10 +17,14 @@ import java.time.Duration;
 import java.time.Instant;
 import java.util.Base64;
 import java.util.UUID;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
-/**
- * Service for authentication operations.
- */
+/** Service for authentication operations. */
 @Service
 @Transactional(readOnly = true)
 public class AuthenticationService {
@@ -61,9 +58,7 @@ public class AuthenticationService {
         this.refreshTokenValidityMs = refreshTokenValidityMs;
     }
 
-    /**
-     * Register a new user.
-     */
+    /** Register a new user. */
     @Transactional
     public void register(AuthDto.RegisterRequest request) {
         log.info("Registration attempt for email: {}", request.email());
@@ -75,8 +70,10 @@ public class AuthenticationService {
         // Create or find tenant (simplification for demo: creation)
         Tenant tenant = new Tenant();
         tenant.setName(request.tenantName() != null ? request.tenantName() : "Demo Tenant");
-        tenant.setCode(request.tenantName() != null ? request.tenantName().toLowerCase().replaceAll("\\s+", "-")
-                : "demo-tenant-" + UUID.randomUUID().toString().substring(0, 8));
+        tenant.setCode(
+                request.tenantName() != null
+                        ? request.tenantName().toLowerCase().replaceAll("\\s+", "-")
+                        : "demo-tenant-" + UUID.randomUUID().toString().substring(0, 8));
         tenant.setStatus(Tenant.TenantStatus.ACTIVE);
         tenant = tenantRepository.save(tenant);
 
@@ -98,20 +95,23 @@ public class AuthenticationService {
         log.info("User registered successfully: {}", user.getEmail());
     }
 
-    /**
-     * Authenticate user with email and password.
-     */
+    /** Authenticate user with email and password. */
     @Transactional
-    public AuthDto.LoginResponse login(AuthDto.LoginRequest request, String ipAddress, String userAgent) {
+    public AuthDto.LoginResponse login(
+            AuthDto.LoginRequest request, String ipAddress, String userAgent) {
         log.info("Login attempt for email: {}", request.email());
 
         // Find user by email
-        User user = userRepository.findByEmailForAuth(request.email().toLowerCase())
-                .orElseThrow(() -> new UnauthorizedException("Invalid credentials"));
+        User user =
+                userRepository
+                        .findByEmailForAuth(request.email().toLowerCase())
+                        .orElseThrow(() -> new UnauthorizedException("Invalid credentials"));
 
         // Check if tenant is active
-        Tenant tenant = tenantRepository.findById(user.getTenantId())
-                .orElseThrow(() -> new UnauthorizedException("Tenant not found"));
+        Tenant tenant =
+                tenantRepository
+                        .findById(user.getTenantId())
+                        .orElseThrow(() -> new UnauthorizedException("Tenant not found"));
 
         if (tenant.getStatus() != Tenant.TenantStatus.ACTIVE) {
             throw new UnauthorizedException("Tenant is not active");
@@ -120,7 +120,8 @@ public class AuthenticationService {
         // Check if account is locked
         if (user.isLocked()) {
             log.warn("Login attempt for locked account: {}", request.email());
-            throw new UnauthorizedException("Account is temporarily locked. Please try again later.");
+            throw new UnauthorizedException(
+                    "Account is temporarily locked. Please try again later.");
         }
 
         // Verify password
@@ -135,11 +136,9 @@ public class AuthenticationService {
         userRepository.save(user);
 
         // Generate tokens
-        String accessToken = jwtTokenProvider.generateAccessToken(
-                user.getId(),
-                user.getTenantId(),
-                user.getUsername(),
-                user.getRolesSet());
+        String accessToken =
+                jwtTokenProvider.generateAccessToken(
+                        user.getId(), user.getTenantId(), user.getUsername(), user.getRolesSet());
 
         String refreshToken = createRefreshToken(user, ipAddress, userAgent);
 
@@ -159,39 +158,39 @@ public class AuthenticationService {
                         user.getRolesSet()));
     }
 
-    /**
-     * Refresh access token using refresh token.
-     */
+    /** Refresh access token using refresh token. */
     @Transactional
     public AuthDto.RefreshTokenResponse refreshToken(AuthDto.RefreshTokenRequest request) {
         String tokenHash = hashToken(request.refreshToken());
 
-        RefreshToken refreshToken = refreshTokenRepository
-                .findValidToken(tokenHash, Instant.now())
-                .orElseThrow(() -> new UnauthorizedException("Invalid or expired refresh token"));
+        RefreshToken refreshToken =
+                refreshTokenRepository
+                        .findValidToken(tokenHash, Instant.now())
+                        .orElseThrow(
+                                () ->
+                                        new UnauthorizedException(
+                                                "Invalid or expired refresh token"));
 
-        User user = userRepository.findById(refreshToken.getUserId())
-                .orElseThrow(() -> new UnauthorizedException("User not found"));
+        User user =
+                userRepository
+                        .findById(refreshToken.getUserId())
+                        .orElseThrow(() -> new UnauthorizedException("User not found"));
 
         if (user.getStatus() != User.UserStatus.ACTIVE) {
             throw new UnauthorizedException("User account is not active");
         }
 
         // Generate new access token
-        String accessToken = jwtTokenProvider.generateAccessToken(
-                user.getId(),
-                user.getTenantId(),
-                user.getUsername(),
-                user.getRolesSet());
+        String accessToken =
+                jwtTokenProvider.generateAccessToken(
+                        user.getId(), user.getTenantId(), user.getUsername(), user.getRolesSet());
 
         log.info("Token refreshed for user: {}", user.getEmail());
 
         return AuthDto.RefreshTokenResponse.of(accessToken, accessTokenValidityMs / 1000);
     }
 
-    /**
-     * Logout user by revoking refresh token.
-     */
+    /** Logout user by revoking refresh token. */
     @Transactional
     public void logout(AuthDto.LogoutRequest request) {
         if (request.refreshToken() != null && !request.refreshToken().isBlank()) {
@@ -201,9 +200,7 @@ public class AuthenticationService {
         }
     }
 
-    /**
-     * Logout from all sessions.
-     */
+    /** Logout from all sessions. */
     @Transactional
     public void logoutAll(UUID userId) {
         refreshTokenRepository.revokeAllByUserId(userId, Instant.now());
@@ -251,8 +248,7 @@ public class AuthenticationService {
     }
 
     private String truncateString(String str, int maxLength) {
-        if (str == null)
-            return null;
+        if (str == null) return null;
         return str.length() > maxLength ? str.substring(0, maxLength) : str;
     }
 }

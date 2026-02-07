@@ -11,6 +11,8 @@ import com.supplysight.identity.entity.User;
 import com.supplysight.identity.entity.User.UserStatus;
 import com.supplysight.identity.repository.TenantRepository;
 import com.supplysight.identity.repository.UserRepository;
+import java.util.Set;
+import java.util.UUID;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.data.domain.Page;
@@ -19,12 +21,9 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.Set;
-import java.util.UUID;
-
 /**
- * Service for user management operations.
- * All operations are tenant-scoped for multi-tenant isolation.
+ * Service for user management operations. All operations are tenant-scoped for multi-tenant
+ * isolation.
  */
 @Service
 @Transactional(readOnly = true)
@@ -37,23 +36,25 @@ public class UserService {
     private final TenantRepository tenantRepository;
     private final PasswordEncoder passwordEncoder;
 
-    public UserService(UserRepository userRepository, TenantRepository tenantRepository, 
-                       PasswordEncoder passwordEncoder) {
+    public UserService(
+            UserRepository userRepository,
+            TenantRepository tenantRepository,
+            PasswordEncoder passwordEncoder) {
         this.userRepository = userRepository;
         this.tenantRepository = tenantRepository;
         this.passwordEncoder = passwordEncoder;
     }
 
-    /**
-     * Create a new user within a tenant.
-     */
+    /** Create a new user within a tenant. */
     @Transactional
     public UserDto.Response createUser(UUID tenantId, UserDto.CreateRequest request) {
         log.info("Creating user {} for tenant {}", request.email(), tenantId);
 
         // Validate tenant exists
-        Tenant tenant = tenantRepository.findById(tenantId)
-                .orElseThrow(() -> new ResourceNotFoundException("Tenant", tenantId));
+        Tenant tenant =
+                tenantRepository
+                        .findById(tenantId)
+                        .orElseThrow(() -> new ResourceNotFoundException("Tenant", tenantId));
 
         // Check for duplicates
         if (userRepository.existsByTenantIdAndEmail(tenantId, request.email())) {
@@ -77,28 +78,32 @@ public class UserService {
         user.setStatus(UserStatus.ACTIVE);
 
         user = userRepository.save(user);
-        log.info("Created user {} with id {} for tenant {}", user.getEmail(), user.getId(), tenantId);
+        log.info(
+                "Created user {} with id {} for tenant {}",
+                user.getEmail(),
+                user.getId(),
+                tenantId);
 
         return toResponse(user);
     }
 
-    /**
-     * Get user by ID (tenant-scoped).
-     */
+    /** Get user by ID (tenant-scoped). */
     public UserDto.Response getUser(UUID tenantId, UUID userId) {
         User user = findUserOrThrow(tenantId, userId);
         return toResponse(user);
     }
 
-    /**
-     * Get current user info.
-     */
+    /** Get current user info. */
     public UserDto.MeResponse getCurrentUser(UUID userId, UUID tenantId) {
-        User user = userRepository.findByTenantIdAndId(tenantId, userId)
-                .orElseThrow(() -> new ResourceNotFoundException("User", userId));
+        User user =
+                userRepository
+                        .findByTenantIdAndId(tenantId, userId)
+                        .orElseThrow(() -> new ResourceNotFoundException("User", userId));
 
-        Tenant tenant = tenantRepository.findById(tenantId)
-                .orElseThrow(() -> new ResourceNotFoundException("Tenant", tenantId));
+        Tenant tenant =
+                tenantRepository
+                        .findById(tenantId)
+                        .orElseThrow(() -> new ResourceNotFoundException("Tenant", tenantId));
 
         return new UserDto.MeResponse(
                 user.getId(),
@@ -110,13 +115,10 @@ public class UserService {
                 user.getFirstName(),
                 user.getLastName(),
                 user.getFullName(),
-                user.getRolesSet()
-        );
+                user.getRolesSet());
     }
 
-    /**
-     * Update user (tenant-scoped).
-     */
+    /** Update user (tenant-scoped). */
     @Transactional
     public UserDto.Response updateUser(UUID tenantId, UUID userId, UserDto.UpdateRequest request) {
         log.info("Updating user {} for tenant {}", userId, tenantId);
@@ -156,9 +158,7 @@ public class UserService {
         return toResponse(user);
     }
 
-    /**
-     * Change user password.
-     */
+    /** Change user password. */
     @Transactional
     public void changePassword(UUID tenantId, UUID userId, UserDto.ChangePasswordRequest request) {
         log.info("Changing password for user {}", userId);
@@ -175,15 +175,13 @@ public class UserService {
         log.info("Password changed for user {}", userId);
     }
 
-    /**
-     * Delete user (soft delete).
-     */
+    /** Delete user (soft delete). */
     @Transactional
     public void deleteUser(UUID tenantId, UUID userId) {
         log.info("Deleting user {} for tenant {}", userId, tenantId);
 
         User user = findUserOrThrow(tenantId, userId);
-        
+
         // Prevent self-deletion
         UUID currentUserId = TenantContext.getUserId();
         if (userId.equals(currentUserId)) {
@@ -196,26 +194,24 @@ public class UserService {
         log.info("Deleted user {} for tenant {}", userId, tenantId);
     }
 
-    /**
-     * List users for a tenant.
-     */
+    /** List users for a tenant. */
     public Page<UserDto.Summary> listUsers(UUID tenantId, Pageable pageable) {
-        return userRepository.findAllByTenantId(tenantId, pageable)
-                .map(this::toSummary);
+        return userRepository.findAllByTenantId(tenantId, pageable).map(this::toSummary);
     }
 
-    /**
-     * List users by status.
-     */
-    public Page<UserDto.Summary> listUsersByStatus(UUID tenantId, UserStatus status, Pageable pageable) {
-        return userRepository.findByTenantIdAndStatus(tenantId, status, pageable)
+    /** List users by status. */
+    public Page<UserDto.Summary> listUsersByStatus(
+            UUID tenantId, UserStatus status, Pageable pageable) {
+        return userRepository
+                .findByTenantIdAndStatus(tenantId, status, pageable)
                 .map(this::toSummary);
     }
 
     // Helper methods
 
     private User findUserOrThrow(UUID tenantId, UUID userId) {
-        return userRepository.findByTenantIdAndId(tenantId, userId)
+        return userRepository
+                .findByTenantIdAndId(tenantId, userId)
                 .orElseThrow(() -> new ResourceNotFoundException("User", userId));
     }
 
@@ -228,7 +224,8 @@ public class UserService {
         for (String role : roles) {
             String upperRole = role.toUpperCase();
             if (!VALID_ROLES.contains(upperRole)) {
-                throw new ValidationException("Invalid role: " + role + ". Valid roles are: " + VALID_ROLES);
+                throw new ValidationException(
+                        "Invalid role: " + role + ". Valid roles are: " + VALID_ROLES);
             }
             normalizedRoles.add(upperRole);
         }
@@ -248,8 +245,7 @@ public class UserService {
                 user.getStatus(),
                 user.getLastLoginAt(),
                 user.getCreatedAt(),
-                user.getUpdatedAt()
-        );
+                user.getUpdatedAt());
     }
 
     private UserDto.Summary toSummary(User user) {
@@ -259,7 +255,6 @@ public class UserService {
                 user.getUsername(),
                 user.getFullName(),
                 user.getRolesSet(),
-                user.getStatus()
-        );
+                user.getStatus());
     }
 }

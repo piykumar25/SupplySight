@@ -6,16 +6,12 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
-/**
- * DTOs for shipment visibility operations.
- */
+/** DTOs for shipment visibility operations. */
 public final class ShipmentDto {
 
     private ShipmentDto() {}
 
-    /**
-     * Current state response.
-     */
+    /** Current state response. */
     public record CurrentStateResponse(
             UUID shipmentId,
             UUID tenantId,
@@ -30,74 +26,47 @@ public final class ShipmentDto {
             Double delayProbability,
             Integer eventCount,
             Instant createdAt,
-            Instant updatedAt
-    ) implements Serializable {}
+            Instant updatedAt)
+            implements Serializable {}
 
-    /**
-     * Location data.
-     */
-    public record Location(
-            Double lat,
-            Double lon,
-            String hubCode
-    ) implements Serializable {}
+    /** Location data. */
+    public record Location(Double lat, Double lon, String hubCode) implements Serializable {}
 
-    /**
-     * Timeline response.
-     */
+    /** Timeline response. */
     public record TimelineResponse(
-            UUID shipmentId,
-            UUID tenantId,
-            int eventCount,
-            List<TimelineEvent> events
-    ) {}
+            UUID shipmentId, UUID tenantId, int eventCount, List<TimelineEvent> events) {}
 
-    /**
-     * Single timeline event.
-     */
+    /** Single timeline event. */
     public record TimelineEvent(
             UUID eventId,
             String eventType,
             Instant eventTime,
             String source,
             Location location,
-            Map<String, Object> payload
-    ) {}
+            Map<String, Object> payload) {}
 
-    /**
-     * Shipment summary for listing.
-     */
+    /** Shipment summary for listing. */
     public record ShipmentSummary(
             UUID shipmentId,
             String status,
             String lastEventType,
             Instant lastEventTime,
             Location lastLocation,
-            Instant eta
-    ) implements Serializable {}
+            Instant eta)
+            implements Serializable {}
 
-    /**
-     * Status statistics.
-     */
-    public record StatusStats(
-            String status,
-            long count
-    ) {}
+    /** Status statistics. */
+    public record StatusStats(String status, long count) {}
 
-    /**
-     * Dashboard statistics.
-     */
+    /** Dashboard statistics. */
     public record DashboardStats(
             long totalShipments,
             long inTransit,
             long delivered,
             long delayed,
-            List<StatusStats> statusBreakdown
-    ) {}
+            List<StatusStats> statusBreakdown) {}
 
-    /**
-     * Query parameters for listing shipments.
-     */
+    /** Query parameters for listing shipments. */
     public record ShipmentQuery(
             String status,
             Instant fromDate,
@@ -105,6 +74,5 @@ public final class ShipmentDto {
             int page,
             int size,
             String sortBy,
-            String sortDir
-    ) {}
+            String sortDir) {}
 }

@@ -1,7 +1,12 @@
 package com.supplysight.integration;
 
+import static org.assertj.core.api.Assertions.assertThat;
+
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import java.time.Duration;
+import java.time.Instant;
+import java.util.*;
 import org.junit.jupiter.api.*;
 import org.springframework.web.reactive.function.client.WebClient;
 import org.testcontainers.containers.*;
@@ -9,35 +14,29 @@ import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 import org.testcontainers.utility.DockerImageName;
 
-import java.time.Duration;
-import java.time.Instant;
-import java.util.*;
-
-import static org.assertj.core.api.Assertions.assertThat;
-
 /**
- * End-to-end integration test for the complete SupplySight platform.
- * Tests the full flow: Event Ingestion -> Visibility -> Prediction -> Audit
+ * End-to-end integration test for the complete SupplySight platform. Tests the full flow: Event
+ * Ingestion -> Visibility -> Prediction -> Audit
  */
 @Testcontainers
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
 @DisplayName("End-to-End Integration Tests")
-public class EndToEndIntegrationTest {
+public class EndToEndIT {
 
     @Container
-    static PostgreSQLContainer<?> postgres = new PostgreSQLContainer<>("postgres:16-alpine")
-            .withDatabaseName("supplysight_e2e")
-            .withUsername("test")
-            .withPassword("test");
+    static PostgreSQLContainer<?> postgres =
+            new PostgreSQLContainer<>("postgres:16-alpine")
+                    .withDatabaseName("supplysight_e2e")
+                    .withUsername("test")
+                    .withPassword("test");
 
     @Container
-    static KafkaContainer kafka = new KafkaContainer(
-            DockerImageName.parse("confluentinc/cp-kafka:7.5.0")
-    );
+    static KafkaContainer kafka =
+            new KafkaContainer(DockerImageName.parse("confluentinc/cp-kafka:7.5.0"));
 
     @Container
-    static GenericContainer<?> redis = new GenericContainer<>("redis:7-alpine")
-            .withExposedPorts(6379);
+    static GenericContainer<?> redis =
+            new GenericContainer<>("redis:7-alpine").withExposedPorts(6379);
 
     private static WebClient webClient;
     private static ObjectMapper objectMapper;
@@ -52,13 +51,11 @@ public class EndToEndIntegrationTest {
         // Note: In a real scenario, you would start all services here
         // For this test, we assume services are running and accessible
         gatewayBaseUrl = System.getProperty("gateway.url", "http://localhost:8080");
-        
-        webClient = WebClient.builder()
-                .baseUrl(gatewayBaseUrl)
-                .build();
-        
+
+        webClient = WebClient.builder().baseUrl(gatewayBaseUrl).build();
+
         objectMapper = new ObjectMapper();
-        
+
         // Initialize test data
         tenantId = UUID.randomUUID();
         userId = UUID.randomUUID();
@@ -71,22 +68,24 @@ public class EndToEndIntegrationTest {
     void testLogin() {
         // This assumes Identity Service is running
         // In real scenario, you'd create a test user first
-        
-        Map<String, String> loginRequest = Map.of(
-                "email", "admin@demo.com",
-                "password", "admin123"
-        );
 
-        String response = webClient.post()
-                .uri("/api/v1/login")
-                .bodyValue(loginRequest)
-                .retrieve()
-                .bodyToMono(String.class)
-                .timeout(Duration.ofSeconds(10))
-                .block();
+        Map<String, String> loginRequest =
+                Map.of(
+                        "email", "admin@demo.com",
+                        "password", "admin123");
+
+        String response =
+                webClient
+                        .post()
+                        .uri("/api/v1/login")
+                        .bodyValue(loginRequest)
+                        .retrieve()
+                        .bodyToMono(String.class)
+                        .timeout(Duration.ofSeconds(10))
+                        .block();
 
         assertThat(response).isNotNull();
-        
+
         try {
             JsonNode json = objectMapper.readTree(response);
             if (json.has("data") && json.get("data").has("accessToken")) {
@@ -116,28 +115,30 @@ public class EndToEndIntegrationTest {
         eventRequest.put("eventType", "IN_TRANSIT");
         eventRequest.put("eventTime", Instant.now().minusSeconds(60).toString());
         eventRequest.put("source", "GPS_DEVICE");
-        
+
         Map<String, Object> location = new HashMap<>();
         location.put("lat", 12.9716);
         location.put("lon", 77.5946);
         location.put("hubCode", "BLR-HUB-01");
         eventRequest.put("location", location);
-        
+
         Map<String, Object> payload = new HashMap<>();
         payload.put("speedKmph", 62);
         eventRequest.put("payload", payload);
 
-        String response = webClient.post()
-                .uri("/api/v1/events/ingest")
-                .header("Authorization", "Bearer " + accessToken)
-                .bodyValue(eventRequest)
-                .retrieve()
-                .bodyToMono(String.class)
-                .timeout(Duration.ofSeconds(10))
-                .block();
+        String response =
+                webClient
+                        .post()
+                        .uri("/api/v1/events/ingest")
+                        .header("Authorization", "Bearer " + accessToken)
+                        .bodyValue(eventRequest)
+                        .retrieve()
+                        .bodyToMono(String.class)
+                        .timeout(Duration.ofSeconds(10))
+                        .block();
 
         assertThat(response).isNotNull();
-        
+
         try {
             JsonNode json = objectMapper.readTree(response);
             assertThat(json.has("success")).isTrue();
@@ -166,36 +167,40 @@ public class EndToEndIntegrationTest {
         eventRequest.put("source", "GPS_DEVICE");
 
         // First ingestion
-        String response1 = webClient.post()
-                .uri("/api/v1/events/ingest")
-                .header("Authorization", "Bearer " + accessToken)
-                .bodyValue(eventRequest)
-                .retrieve()
-                .bodyToMono(String.class)
-                .timeout(Duration.ofSeconds(10))
-                .block();
+        String response1 =
+                webClient
+                        .post()
+                        .uri("/api/v1/events/ingest")
+                        .header("Authorization", "Bearer " + accessToken)
+                        .bodyValue(eventRequest)
+                        .retrieve()
+                        .bodyToMono(String.class)
+                        .timeout(Duration.ofSeconds(10))
+                        .block();
 
         // Second ingestion (duplicate)
-        String response2 = webClient.post()
-                .uri("/api/v1/events/ingest")
-                .header("Authorization", "Bearer " + accessToken)
-                .bodyValue(eventRequest)
-                .retrieve()
-                .bodyToMono(String.class)
-                .timeout(Duration.ofSeconds(10))
-                .block();
+        String response2 =
+                webClient
+                        .post()
+                        .uri("/api/v1/events/ingest")
+                        .header("Authorization", "Bearer " + accessToken)
+                        .bodyValue(eventRequest)
+                        .retrieve()
+                        .bodyToMono(String.class)
+                        .timeout(Duration.ofSeconds(10))
+                        .block();
 
         assertThat(response1).isNotNull();
         assertThat(response2).isNotNull();
-        
+
         try {
             JsonNode json1 = objectMapper.readTree(response1);
             JsonNode json2 = objectMapper.readTree(response2);
-            
+
             // First should be ACCEPTED, second should be DUPLICATE
             String status1 = json1.get("data").get("status").asText();
             String status2 = json2.get("data").get("status").asText();
-            
+
             assertThat(status1).isEqualTo("ACCEPTED");
             assertThat(status2).isEqualTo("DUPLICATE");
         } catch (Exception e) {
@@ -219,13 +224,15 @@ public class EndToEndIntegrationTest {
             Thread.currentThread().interrupt();
         }
 
-        String response = webClient.get()
-                .uri("/api/v1/shipments/" + shipmentId)
-                .header("Authorization", "Bearer " + accessToken)
-                .retrieve()
-                .bodyToMono(String.class)
-                .timeout(Duration.ofSeconds(10))
-                .block();
+        String response =
+                webClient
+                        .get()
+                        .uri("/api/v1/shipments/" + shipmentId)
+                        .header("Authorization", "Bearer " + accessToken)
+                        .retrieve()
+                        .bodyToMono(String.class)
+                        .timeout(Duration.ofSeconds(10))
+                        .block();
 
         assertThat(response).isNotNull();
         System.out.println("Shipment visibility response: " + response);
@@ -240,13 +247,15 @@ public class EndToEndIntegrationTest {
             return;
         }
 
-        String response = webClient.get()
-                .uri("/api/v1/audit/logs?page=0&size=10")
-                .header("Authorization", "Bearer " + accessToken)
-                .retrieve()
-                .bodyToMono(String.class)
-                .timeout(Duration.ofSeconds(10))
-                .block();
+        String response =
+                webClient
+                        .get()
+                        .uri("/api/v1/audit/logs?page=0&size=10")
+                        .header("Authorization", "Bearer " + accessToken)
+                        .retrieve()
+                        .bodyToMono(String.class)
+                        .timeout(Duration.ofSeconds(10))
+                        .block();
 
         assertThat(response).isNotNull();
         System.out.println("Audit logs response: " + response);
@@ -268,7 +277,8 @@ public class EndToEndIntegrationTest {
 
         // Create events for tenant 1
         Map<String, Object> event1 = createEvent(tenant1Id, shipment1Id, "IN_TRANSIT");
-        webClient.post()
+        webClient
+                .post()
                 .uri("/api/v1/events/ingest")
                 .header("Authorization", "Bearer " + accessToken)
                 .bodyValue(event1)
@@ -279,7 +289,8 @@ public class EndToEndIntegrationTest {
 
         // Create events for tenant 2
         Map<String, Object> event2 = createEvent(tenant2Id, shipment2Id, "DELIVERED");
-        webClient.post()
+        webClient
+                .post()
                 .uri("/api/v1/events/ingest")
                 .header("Authorization", "Bearer " + accessToken)
                 .bodyValue(event2)

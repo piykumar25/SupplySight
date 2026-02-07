@@ -1,18 +1,14 @@
 package com.supplysight.audit.entity;
 
 import jakarta.persistence.*;
+import java.time.Instant;
+import java.util.Map;
+import java.util.UUID;
 import lombok.*;
 import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.type.SqlTypes;
 
-import java.time.Instant;
-
-import java.util.Map;
-import java.util.UUID;
-
-/**
- * Audit log entity - immutable record of system events.
- */
+/** Audit log entity - immutable record of system events. */
 @Entity
 @Table(name = "audit_logs", schema = "audit")
 @Getter

@@ -1,22 +1,17 @@
 package com.supplysight.prediction.dto;
 
 import com.supplysight.prediction.entity.ShipmentPrediction.DelayRisk;
-
 import java.time.Instant;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
-/**
- * DTOs for prediction operations.
- */
+/** DTOs for prediction operations. */
 public final class PredictionDto {
 
     private PredictionDto() {}
 
-    /**
-     * Prediction response.
-     */
+    /** Prediction response. */
     public record PredictionResponse(
             UUID id,
             UUID shipmentId,
@@ -33,12 +28,9 @@ public final class PredictionDto {
             Double dwellTimeHours,
             Map<String, Object> factors,
             String modelVersion,
-            Instant createdAt
-    ) {}
+            Instant createdAt) {}
 
-    /**
-     * Prediction summary for listing.
-     */
+    /** Prediction summary for listing. */
     public record PredictionSummary(
             UUID id,
             UUID shipmentId,
@@ -46,18 +38,14 @@ public final class PredictionDto {
             Double delayProbability,
             DelayRisk delayRisk,
             boolean anomalyDetected,
-            Instant createdAt
-    ) {}
+            Instant createdAt) {}
 
-    /**
-     * Prediction statistics.
-     */
+    /** Prediction statistics. */
     public record PredictionStats(
             long totalPredictions,
             long highRiskCount,
             long mediumRiskCount,
             long lowRiskCount,
             long anomalyCount,
-            double avgDelayProbability
-    ) {}
+            double avgDelayProbability) {}
 }

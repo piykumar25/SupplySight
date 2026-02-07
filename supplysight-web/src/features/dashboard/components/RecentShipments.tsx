@@ -77,13 +77,13 @@ export function RecentShipments({ shipments, isLoading }: RecentShipmentsProps) 
                             </div>
                             <div className="text-right">
                                 <div className={`text-sm px-2 py-1 rounded-full inline-block ${shipment.status === 'DELIVERED' ? 'bg-green-500/20 text-green-400' :
-                                        shipment.status === 'DELAYED' ? 'bg-red-500/20 text-red-400' :
-                                            'bg-blue-500/20 text-blue-400'
+                                    shipment.status === 'DELAYED' ? 'bg-red-500/20 text-red-400' :
+                                        'bg-blue-500/20 text-blue-400'
                                     }`}>
                                     {shipment.status}
                                 </div>
                                 <p className="text-xs text-gray-500 mt-1">
-                                    ETA: {new Date(shipment.eta || shipment.expectedDeliveryDate).toLocaleDateString()}
+                                    ETA: {(shipment.eta || shipment.expectedDeliveryDate) ? new Date((shipment.eta || shipment.expectedDeliveryDate)!).toLocaleDateString() : 'N/A'}
                                 </p>
                             </div>
                         </div>

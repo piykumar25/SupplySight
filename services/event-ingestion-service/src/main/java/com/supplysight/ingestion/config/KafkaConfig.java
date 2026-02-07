@@ -2,6 +2,8 @@ package com.supplysight.ingestion.config;
 
 import com.supplysight.common.event.TrackingEvent;
 import com.supplysight.common.kafka.KafkaTopics;
+import java.util.HashMap;
+import java.util.Map;
 import org.apache.kafka.clients.admin.NewTopic;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.producer.ProducerConfig;
@@ -17,12 +19,7 @@ import org.springframework.kafka.listener.ContainerProperties;
 import org.springframework.kafka.support.serializer.JsonDeserializer;
 import org.springframework.kafka.support.serializer.JsonSerializer;
 
-import java.util.HashMap;
-import java.util.Map;
-
-/**
- * Kafka configuration for event ingestion service.
- */
+/** Kafka configuration for event ingestion service. */
 @Configuration
 public class KafkaConfig {
 
@@ -68,7 +65,8 @@ public class KafkaConfig {
     }
 
     @Bean
-    public ConcurrentKafkaListenerContainerFactory<String, TrackingEvent> kafkaListenerContainerFactory() {
+    public ConcurrentKafkaListenerContainerFactory<String, TrackingEvent>
+            kafkaListenerContainerFactory() {
         ConcurrentKafkaListenerContainerFactory<String, TrackingEvent> factory =
                 new ConcurrentKafkaListenerContainerFactory<>();
         factory.setConsumerFactory(consumerFactory());
@@ -80,10 +78,7 @@ public class KafkaConfig {
     // Topic definitions (for auto-creation in dev environment)
     @Bean
     public NewTopic rawEventsTopic() {
-        return TopicBuilder.name(KafkaTopics.TRACKING_EVENTS_RAW)
-                .partitions(3)
-                .replicas(1)
-                .build();
+        return TopicBuilder.name(KafkaTopics.TRACKING_EVENTS_RAW).partitions(3).replicas(1).build();
     }
 
     @Bean

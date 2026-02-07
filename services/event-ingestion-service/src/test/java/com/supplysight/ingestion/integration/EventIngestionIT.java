@@ -1,17 +1,19 @@
 package com.supplysight.ingestion.integration;
 
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
+
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.supplysight.common.kafka.KafkaTopics;
 import com.supplysight.common.security.JwtTokenProvider;
 import com.supplysight.ingestion.dto.EventIngestionDto.*;
 import com.supplysight.ingestion.entity.ProcessedEvent;
 import com.supplysight.ingestion.entity.TrackingEventEntity;
 import com.supplysight.ingestion.repository.ProcessedEventRepository;
 import com.supplysight.ingestion.repository.TrackingEventRepository;
-import org.apache.kafka.clients.consumer.Consumer;
-import org.apache.kafka.clients.consumer.ConsumerConfig;
-import org.apache.kafka.clients.consumer.ConsumerRecords;
-import org.apache.kafka.common.serialization.StringDeserializer;
+import java.time.Instant;
+import java.util.*;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -19,9 +21,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.MediaType;
-import org.springframework.kafka.core.DefaultKafkaConsumerFactory;
-import org.springframework.kafka.support.serializer.JsonDeserializer;
-import org.springframework.kafka.test.utils.KafkaTestUtils;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
 import org.springframework.test.web.servlet.MockMvc;
@@ -32,34 +31,23 @@ import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 import org.testcontainers.utility.DockerImageName;
 
-import java.time.Duration;
-import java.time.Instant;
-import java.util.*;
-
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
-
-/**
- * Integration tests for Event Ingestion Service using Testcontainers.
- */
+/** Integration tests for Event Ingestion Service using Testcontainers. */
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 @AutoConfigureMockMvc
 @Testcontainers
 @Transactional
-class EventIngestionIntegrationTest {
+class EventIngestionIT {
 
     @Container
-    static PostgreSQLContainer<?> postgres = new PostgreSQLContainer<>("postgres:16-alpine")
-            .withDatabaseName("supplysight_test")
-            .withUsername("test")
-            .withPassword("test");
+    static PostgreSQLContainer<?> postgres =
+            new PostgreSQLContainer<>("postgres:16-alpine")
+                    .withDatabaseName("supplysight_test")
+                    .withUsername("test")
+                    .withPassword("test");
 
     @Container
-    static KafkaContainer kafka = new KafkaContainer(
-            DockerImageName.parse("confluentinc/cp-kafka:7.5.0")
-    );
+    static KafkaContainer kafka =
+            new KafkaContainer(DockerImageName.parse("confluentinc/cp-kafka:7.5.0"));
 
     @DynamicPropertySource
     static void configureProperties(DynamicPropertyRegistry registry) {
@@ -70,20 +58,15 @@ class EventIngestionIntegrationTest {
         registry.add("spring.flyway.enabled", () -> "true");
     }
 
-    @Autowired
-    private MockMvc mockMvc;
+    @Autowired private MockMvc mockMvc;
 
-    @Autowired
-    private ObjectMapper objectMapper;
+    @Autowired private ObjectMapper objectMapper;
 
-    @Autowired
-    private TrackingEventRepository trackingEventRepository;
+    @Autowired private TrackingEventRepository trackingEventRepository;
 
-    @Autowired
-    private ProcessedEventRepository processedEventRepository;
+    @Autowired private ProcessedEventRepository processedEventRepository;
 
-    @Autowired
-    private JwtTokenProvider jwtTokenProvider;
+    @Autowired private JwtTokenProvider jwtTokenProvider;
 
     private String accessToken;
     private UUID tenantId;
@@ -93,9 +76,9 @@ class EventIngestionIntegrationTest {
     void setUp() {
         tenantId = UUID.randomUUID();
         userId = UUID.randomUUID();
-        accessToken = jwtTokenProvider.generateAccessToken(
-                userId, tenantId, "testuser", Set.of("OPS_USER")
-        );
+        accessToken =
+                jwtTokenProvider.generateAccessToken(
+                        userId, tenantId, "testuser", Set.of("OPS_USER"));
     }
 
     @Test
@@ -104,22 +87,23 @@ class EventIngestionIntegrationTest {
         UUID eventId = UUID.randomUUID();
         UUID shipmentId = UUID.randomUUID();
 
-        IngestRequest request = new IngestRequest(
-                eventId,
-                tenantId,
-                shipmentId,
-                "IN_TRANSIT",
-                Instant.now().minusSeconds(60),
-                "GPS_DEVICE",
-                new Location(12.9716, 77.5946, "BLR-HUB-01"),
-                Map.of("speedKmph", 62),
-                null
-        );
+        IngestRequest request =
+                new IngestRequest(
+                        eventId,
+                        tenantId,
+                        shipmentId,
+                        "IN_TRANSIT",
+                        Instant.now().minusSeconds(60),
+                        "GPS_DEVICE",
+                        new Location(12.9716, 77.5946, "BLR-HUB-01"),
+                        Map.of("speedKmph", 62),
+                        null);
 
-        mockMvc.perform(post("/api/v1/events/ingest")
-                        .header("Authorization", "Bearer " + accessToken)
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(request)))
+        mockMvc.perform(
+                        post("/api/v1/events/ingest")
+                                .header("Authorization", "Bearer " + accessToken)
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isAccepted())
                 .andExpect(jsonPath("$.success").value(true))
                 .andExpect(jsonPath("$.data.status").value("ACCEPTED"))
@@ -141,31 +125,33 @@ class EventIngestionIntegrationTest {
         UUID eventId = UUID.randomUUID();
         UUID shipmentId = UUID.randomUUID();
 
-        IngestRequest request = new IngestRequest(
-                eventId,
-                tenantId,
-                shipmentId,
-                "IN_TRANSIT",
-                Instant.now().minusSeconds(60),
-                "GPS_DEVICE",
-                null,
-                null,
-                null
-        );
+        IngestRequest request =
+                new IngestRequest(
+                        eventId,
+                        tenantId,
+                        shipmentId,
+                        "IN_TRANSIT",
+                        Instant.now().minusSeconds(60),
+                        "GPS_DEVICE",
+                        null,
+                        null,
+                        null);
 
         // First ingestion - should succeed
-        mockMvc.perform(post("/api/v1/events/ingest")
-                        .header("Authorization", "Bearer " + accessToken)
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(request)))
+        mockMvc.perform(
+                        post("/api/v1/events/ingest")
+                                .header("Authorization", "Bearer " + accessToken)
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isAccepted())
                 .andExpect(jsonPath("$.data.status").value("ACCEPTED"));
 
         // Second ingestion - should return DUPLICATE
-        mockMvc.perform(post("/api/v1/events/ingest")
-                        .header("Authorization", "Bearer " + accessToken)
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(request)))
+        mockMvc.perform(
+                        post("/api/v1/events/ingest")
+                                .header("Authorization", "Bearer " + accessToken)
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.data.status").value("DUPLICATE"));
 
@@ -177,22 +163,23 @@ class EventIngestionIntegrationTest {
     @Test
     @DisplayName("Should reject event with invalid eventType")
     void ingestEvent_InvalidEventType_ReturnsBadRequest() throws Exception {
-        IngestRequest request = new IngestRequest(
-                UUID.randomUUID(),
-                tenantId,
-                UUID.randomUUID(),
-                "INVALID_TYPE",
-                Instant.now().minusSeconds(60),
-                "GPS_DEVICE",
-                null,
-                null,
-                null
-        );
+        IngestRequest request =
+                new IngestRequest(
+                        UUID.randomUUID(),
+                        tenantId,
+                        UUID.randomUUID(),
+                        "INVALID_TYPE",
+                        Instant.now().minusSeconds(60),
+                        "GPS_DEVICE",
+                        null,
+                        null,
+                        null);
 
-        mockMvc.perform(post("/api/v1/events/ingest")
-                        .header("Authorization", "Bearer " + accessToken)
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(request)))
+        mockMvc.perform(
+                        post("/api/v1/events/ingest")
+                                .header("Authorization", "Bearer " + accessToken)
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.data.status").value("REJECTED"));
     }
@@ -200,21 +187,22 @@ class EventIngestionIntegrationTest {
     @Test
     @DisplayName("Should reject request without authentication")
     void ingestEvent_NoAuth_ReturnsUnauthorized() throws Exception {
-        IngestRequest request = new IngestRequest(
-                UUID.randomUUID(),
-                tenantId,
-                UUID.randomUUID(),
-                "IN_TRANSIT",
-                Instant.now().minusSeconds(60),
-                "GPS_DEVICE",
-                null,
-                null,
-                null
-        );
+        IngestRequest request =
+                new IngestRequest(
+                        UUID.randomUUID(),
+                        tenantId,
+                        UUID.randomUUID(),
+                        "IN_TRANSIT",
+                        Instant.now().minusSeconds(60),
+                        "GPS_DEVICE",
+                        null,
+                        null,
+                        null);
 
-        mockMvc.perform(post("/api/v1/events/ingest")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(request)))
+        mockMvc.perform(
+                        post("/api/v1/events/ingest")
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isUnauthorized());
     }
 
@@ -224,11 +212,13 @@ class EventIngestionIntegrationTest {
         UUID eventId = UUID.randomUUID();
 
         // Create processed event
-        ProcessedEvent processed = new ProcessedEvent(eventId, tenantId, ProcessedEvent.EventSource.REST);
+        ProcessedEvent processed =
+                new ProcessedEvent(eventId, tenantId, ProcessedEvent.EventSource.REST);
         processedEventRepository.save(processed);
 
-        mockMvc.perform(get("/api/v1/events/status/" + eventId)
-                        .header("Authorization", "Bearer " + accessToken))
+        mockMvc.perform(
+                        get("/api/v1/events/status/" + eventId)
+                                .header("Authorization", "Bearer " + accessToken))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.data.status").value("PROCESSED"));
     }
@@ -238,8 +228,9 @@ class EventIngestionIntegrationTest {
     void checkEventStatus_UnprocessedEvent() throws Exception {
         UUID eventId = UUID.randomUUID();
 
-        mockMvc.perform(get("/api/v1/events/status/" + eventId)
-                        .header("Authorization", "Bearer " + accessToken))
+        mockMvc.perform(
+                        get("/api/v1/events/status/" + eventId)
+                                .header("Authorization", "Bearer " + accessToken))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.data.status").value("NOT_FOUND"));
     }
@@ -249,25 +240,26 @@ class EventIngestionIntegrationTest {
     void ingestBatch_Success() throws Exception {
         List<IngestRequest> events = new ArrayList<>();
         for (int i = 0; i < 3; i++) {
-            events.add(new IngestRequest(
-                    UUID.randomUUID(),
-                    tenantId,
-                    UUID.randomUUID(),
-                    "IN_TRANSIT",
-                    Instant.now().minusSeconds(60 + i),
-                    "GPS_DEVICE",
-                    null,
-                    null,
-                    null
-            ));
+            events.add(
+                    new IngestRequest(
+                            UUID.randomUUID(),
+                            tenantId,
+                            UUID.randomUUID(),
+                            "IN_TRANSIT",
+                            Instant.now().minusSeconds(60 + i),
+                            "GPS_DEVICE",
+                            null,
+                            null,
+                            null));
         }
 
         BatchIngestRequest request = new BatchIngestRequest(events);
 
-        mockMvc.perform(post("/api/v1/events/ingest/batch")
-                        .header("Authorization", "Bearer " + accessToken)
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(request)))
+        mockMvc.perform(
+                        post("/api/v1/events/ingest/batch")
+                                .header("Authorization", "Bearer " + accessToken)
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isAccepted())
                 .andExpect(jsonPath("$.data.total").value(3))
                 .andExpect(jsonPath("$.data.accepted").value(3))

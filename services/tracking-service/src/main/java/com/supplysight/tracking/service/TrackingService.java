@@ -1,15 +1,15 @@
 package com.supplysight.tracking.service;
 
+import com.supplysight.common.security.TenantContext;
 import com.supplysight.tracking.domain.Shipment;
 import com.supplysight.tracking.domain.TrackingEvent;
 import com.supplysight.tracking.repository.ShipmentRepository;
 import com.supplysight.tracking.repository.TrackingEventRepository;
+import java.util.List;
+import java.util.Optional;
 import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-
-import java.util.List;
-import java.util.Optional;
 
 @Service
 public class TrackingService {
@@ -18,7 +18,8 @@ public class TrackingService {
     private final TrackingEventRepository eventRepository;
     private final KafkaTemplate<String, Object> kafkaTemplate;
 
-    public TrackingService(ShipmentRepository shipmentRepository,
+    public TrackingService(
+            ShipmentRepository shipmentRepository,
             TrackingEventRepository eventRepository,
             KafkaTemplate<String, Object> kafkaTemplate) {
         this.shipmentRepository = shipmentRepository;
@@ -33,17 +34,21 @@ public class TrackingService {
     }
 
     public Optional<Shipment> getShipment(String trackingNumber) {
-        return shipmentRepository.findByTrackingNumber(trackingNumber);
+        return shipmentRepository.findByTenantIdAndTrackingNumber(
+                TenantContext.getTenantId(), trackingNumber);
     }
 
     public List<Shipment> getAllShipments() {
-        return shipmentRepository.findAll();
+        return shipmentRepository.findAllByTenantId(TenantContext.getTenantId());
     }
 
     @Transactional
     public TrackingEvent addEvent(String trackingNumber, TrackingEvent event) {
-        Shipment shipment = shipmentRepository.findByTrackingNumber(trackingNumber)
-                .orElseThrow(() -> new RuntimeException("Shipment not found"));
+        Shipment shipment =
+                shipmentRepository
+                        .findByTenantIdAndTrackingNumber(
+                                TenantContext.getTenantId(), trackingNumber)
+                        .orElseThrow(() -> new RuntimeException("Shipment not found"));
 
         event.setTrackingNumber(trackingNumber);
         TrackingEvent savedEvent = eventRepository.save(event);
@@ -59,6 +64,7 @@ public class TrackingService {
     }
 
     public List<TrackingEvent> getEvents(String trackingNumber) {
-        return eventRepository.findByTrackingNumberOrderByTimestampDesc(trackingNumber);
+        return eventRepository.findByTenantIdAndTrackingNumberOrderByTimestampDesc(
+                TenantContext.getTenantId(), trackingNumber);
     }
 }

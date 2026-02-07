@@ -1,17 +1,13 @@
 package com.supplysight.common.entity;
 
 import jakarta.persistence.*;
+import java.time.Instant;
+import java.util.UUID;
 import org.springframework.data.annotation.CreatedDate;
 import org.springframework.data.annotation.LastModifiedDate;
 import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
-import java.time.Instant;
-import java.util.UUID;
-
-/**
- * Base entity class with common audit fields.
- * All entities should extend this class.
- */
+/** Base entity class with common audit fields. All entities should extend this class. */
 @MappedSuperclass
 @EntityListeners(AuditingEntityListener.class)
 public abstract class BaseEntity {

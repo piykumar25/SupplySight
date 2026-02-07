@@ -1,14 +1,11 @@
 package com.supplysight.audit.dto;
 
-import lombok.*;
-
 import java.time.Instant;
 import java.util.Map;
 import java.util.UUID;
+import lombok.*;
 
-/**
- * DTOs for alert history operations.
- */
+/** DTOs for alert history operations. */
 public class AlertHistoryDto {
 
     @Data

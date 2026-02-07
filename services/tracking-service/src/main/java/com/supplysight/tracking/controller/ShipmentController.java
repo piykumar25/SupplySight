@@ -3,10 +3,9 @@ package com.supplysight.tracking.controller;
 import com.supplysight.tracking.domain.Shipment;
 import com.supplysight.tracking.domain.TrackingEvent;
 import com.supplysight.tracking.service.TrackingService;
+import java.util.List;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-
-import java.util.List;
 
 @RestController
 @RequestMapping("/api/v1/shipments")
@@ -30,14 +29,15 @@ public class ShipmentController {
 
     @GetMapping("/{trackingNumber}")
     public ResponseEntity<Shipment> getShipment(@PathVariable String trackingNumber) {
-        return trackingService.getShipment(trackingNumber)
+        return trackingService
+                .getShipment(trackingNumber)
                 .map(ResponseEntity::ok)
                 .orElse(ResponseEntity.notFound().build());
     }
 
     @PostMapping("/{trackingNumber}/events")
-    public ResponseEntity<TrackingEvent> addEvent(@PathVariable String trackingNumber,
-            @RequestBody TrackingEvent event) {
+    public ResponseEntity<TrackingEvent> addEvent(
+            @PathVariable String trackingNumber, @RequestBody TrackingEvent event) {
         return ResponseEntity.ok(trackingService.addEvent(trackingNumber, event));
     }
 

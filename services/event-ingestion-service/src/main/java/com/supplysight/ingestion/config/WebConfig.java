@@ -5,9 +5,7 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.web.servlet.config.annotation.InterceptorRegistry;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 
-/**
- * Web configuration to register quota enforcement interceptor.
- */
+/** Web configuration to register quota enforcement interceptor. */
 @Configuration
 public class WebConfig implements WebMvcConfigurer {
 
